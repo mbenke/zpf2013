@@ -1,0 +1,29 @@
+%module main:C
+  %data main:C.TZCC1 aabv =
+    {main:C.DZCC1 aabv (aabv -> aabv)};
+  %data main:C.TZCC2 aabu =
+    {main:C.DZCC2 ((main:C.TZCC1 aabu)) (aabu -> aabu -> aabu)};
+  main:C.zdp1C2 :: %forall aabu . (main:C.TZCC2 aabu) ->
+                                  (main:C.TZCC1 aabu) =
+    \ @ aabu (tplB1::(main:C.TZCC2 aabu)) ->
+        %case ((main:C.TZCC1 aabu)) tplB1 %of (tplX4::(main:C.TZCC2 aabu))
+          {main:C.DZCC2
+           (tplB2::(main:C.TZCC1 aabu)) (tplB3::aabu -> aabu -> aabu) ->
+             tplB2};
+  main:C.m2 :: %forall aabu . (main:C.TZCC2 aabu) ->
+                              aabu -> aabu -> aabu =
+    \ @ aabu (tplB1::(main:C.TZCC2 aabu)) ->
+        %case (aabu -> aabu -> aabu) tplB1 %of (tplX4::(main:C.TZCC2 aabu))
+          {main:C.DZCC2
+           (tplB2::(main:C.TZCC1 aabu)) (tplB3::aabu -> aabu -> aabu) ->
+             tplB3};
+  main:C.m0 :: %forall aabv . (main:C.TZCC1 aabv) -> aabv =
+    \ @ aabv (tplB1::(main:C.TZCC1 aabv)) ->
+        %case aabv tplB1 %of (tplX4::(main:C.TZCC1 aabv))
+          {main:C.DZCC1 (tplB2::aabv) (tplB3::aabv -> aabv) ->
+             tplB2};
+  main:C.m1 :: %forall aabv . (main:C.TZCC1 aabv) -> aabv -> aabv =
+    \ @ aabv (tplB1::(main:C.TZCC1 aabv)) ->
+        %case (aabv -> aabv) tplB1 %of (tplX4::(main:C.TZCC1 aabv))
+          {main:C.DZCC1 (tplB2::aabv) (tplB3::aabv -> aabv) ->
+             tplB3};

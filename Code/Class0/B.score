@@ -1,0 +1,102 @@
+{-
+0. Punktem wyjscia jest B.hcr
+1. main:B. -> puste (lokalny modul)
+2. mangling:
+encode_ch '(' = "ZL" -- Needed for things like (,), and (->)
+encode_ch ')' = "ZR" -- For symmetry with (
+encode_ch '[' = "ZM"
+encode_ch ']' = "ZN"
+encode_ch ':' = "ZC"
+encode_ch 'Z' = "ZZ"
+
+-- Variables
+encode_ch 'z' = "zz"
+encode_ch '&' = "za"
+encode_ch '|' = "zb"
+encode_ch '^' = "zc"
+encode_ch '$' = "zd"
+encode_ch '=' = "ze"
+encode_ch '>' = "zg"
+encode_ch '#' = "zh"
+encode_ch '.' = "zi"
+encode_ch '<' = "zl"
+encode_ch '-' = "zm"
+encode_ch '!' = "zn"
+encode_ch '+' = "zp"
+encode_ch '\'' = "zq"
+encode_ch '\\' = "zr"
+encode_ch '/' = "zs"
+encode_ch '*' = "zt"
+encode_ch '_' = "zu"
+encode_ch '%' = "zv"
+
+4. TZCE -> DicE (słownik dla klasy E)
+5. NTCoZCTZCE -> CoDE
+3. zddEabP -> dicE
+4. aaby -> a, aabx -> a
+5. aabO -> a0, xabzz -> x, yabA -> y
+
+-}
+%module main:B
+  %data B =
+    {F;
+     T};
+  %newtype DicE CoDE a
+    = a -> a -> B;
+
+-- DicE a to slownik metod
+-- CoDE :: (DicE a) ~ (a -> a-> b) -- koercja
+-- newtype jest tylko optymalizacja (bo tylko jedna metoda)
+-- w gruncie rzeczy mogłoby być 
+--   %data DicE
+-- eq to selektor metody ma typ mniej wiecej taki:
+
+-- forall a. (DicE a) -> a -> a -> B
+
+  eq :: %forall a . (DicE a) ->
+                              a -> a -> B =
+    \ @ a (tplB1::(DicE a)) ->
+        %cast (tplB1)
+        ((CoDE a));
+
+-- n jest "zwykla funkcja"
+
+  n :: B -> B =
+    \ (dsdc0::B) ->
+        %case B dsdc0 %of (wildX6::B)
+          {F ->
+             T;
+           T ->
+             F};
+
+-- neq :: forall a. (dE :: slownikE a) -> a -> a -> B
+-- n zostalo rozwiniete
+  neq :: %forall a . (DicE a) ->
+                               a -> a -> B =
+    \ @ a0  -- typ
+      (dicE::(DicE a0))
+      (x::a0)
+      (y::a0) ->
+-- case eq dicE x y :: B of
+        %case B ((%cast (dicE)
+                         ((CoDE a0)))
+                        x y)  
+        %of (wildX6::B)
+          {F ->
+             T;
+           T ->
+             F};
+  zdceqrc7 :: B -> B -> B =
+    \ (xabB::B) (yabC::B) ->
+        %case B xabB %of (wildX9::B)
+          {F ->
+             %case B yabC %of (wild1X6::B)
+               {F ->
+                  T;
+                T ->
+                  F};
+           T ->
+             yabC};
+  zdfEB :: (DicE B) =
+    %cast (zdceqrc7)
+    (%sym ((CoDE B)));

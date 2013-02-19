@@ -1,0 +1,50 @@
+%module main:B
+  %data main:B.B =
+    {main:B.F;
+     main:B.T};
+  %newtype main:B.TZCE main:B.NTCoZCTZCE aadr
+    = aadr -> aadr -> main:B.B;
+  main:B.eq :: %forall aadr . (main:B.TZCE aadr) ->
+                              aadr -> aadr -> main:B.B =
+    \ @ aadr (tplB1::(main:B.TZCE aadr)) ->
+        %cast (tplB1)
+        ((main:B.NTCoZCTZCE aadr));
+  main:B.n :: main:B.B -> main:B.B =
+    \ (dsdeb::main:B.B) ->
+        %case main:B.B dsdeb %of (wildB1::main:B.B)
+          {main:B.F ->
+             main:B.T;
+           main:B.T ->
+             main:B.F};
+  main:B.neq :: %forall aads . (main:B.TZCE aads) ->
+                               aads -> aads -> main:B.B =
+    \ @ aadP (zddEadT::(main:B.TZCE aadP)) (xadt::aadP) (yadu::aadP) ->
+        %case main:B.B ((%cast (zddEadT)
+                         ((main:B.NTCoZCTZCE aadP)))
+                        xadt yadu)
+        %of (wildB1::main:B.B)
+          {main:B.F ->
+             main:B.T;
+           main:B.T ->
+             main:B.F};
+  eq1rel :: main:B.B -> main:B.B -> main:B.B =
+    \ (xadv::main:B.B) (yadw::main:B.B) ->
+        %case main:B.B xadv %of (wildB1::main:B.B)
+          {main:B.F ->
+             %case main:B.B yadw %of (wild1Xf::main:B.B)
+               {main:B.F ->
+                  main:B.T;
+                main:B.T ->
+                  main:B.F};
+           main:B.T ->
+             yadw};
+  main:B.zdfEB :: (main:B.TZCE main:B.B) =
+    %cast (eq1rel)
+    (%sym ((main:B.NTCoZCTZCE main:B.B)));
+  main:B.test :: main:B.B -> main:B.B =
+    \ (yadu::main:B.B) ->
+        %case main:B.B yadu %of (wildXj::main:B.B)
+          {main:B.F ->
+             main:B.T;
+           main:B.T ->
+             main:B.F};
