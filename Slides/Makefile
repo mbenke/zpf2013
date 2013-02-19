@@ -1,4 +1,4 @@
-SUBDIRS:= 1 2
+SUBDIRS:= 01
 #SHELL:=/bin/bash
 
 all: subdirs

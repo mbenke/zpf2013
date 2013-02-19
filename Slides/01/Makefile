@@ -6,8 +6,8 @@ L ?= $(MDFILE)
 MATH=--mathjax #=$(MATHJAXURL)
 #MATH=--mathml
 PDOPTS=$(MATH) #--self-contained
-PANDOC=~/.cabal/bin/pandoc $(PDOPTS)
-
+#PANDOC=~/.cabal/bin/pandoc $(PDOPTS)
+PANDOC=pandoc $(PDOPTS)
 
 all: $(L).html $(L)-slides.html
 .PHONY: all echo
