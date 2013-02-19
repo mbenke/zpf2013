@@ -1,6 +1,6 @@
 % Zaawansowane programowanie funkcyjne
 % Marcin Benke
-% 15 lutego 2012
+% 20 lutego 2013
 
 <meta name="duration" content="80" />
 
@@ -10,14 +10,14 @@
     * Klasy konstruktorowe
     * Klasy wieloparametrowe, zależności funkcyjne
     * Rodziny typów, typy skojarzone, uogólnione typy algebraiczne (GADT)
-* Typy zależne, Agda, Alonzo
+* Typy zależne, Agda, Idris
 * Metody kontrolowania efektów w języku funkcyjnym (ok. 6 wykładów)
     * Rodzaje efektów (błędy, stan, I/O, nawracanie)
     * Monady Error, State, IO, List
-    * Studium biblioteki monadycznej
+    * Studium biblioteki monadynej
     * Funktory aplikatywne i idiomy
     * Studium biblioteki idiomatycznej
-    * Strzałki
+<!--    * Strzałki -->
 * Programowanie równoległe w Haskellu
     * Programowanie wielordzeniowe i wieloprocesorowe (SMP)
     * Równoległość danych (Data Parallel Haskell)
@@ -31,7 +31,18 @@ Jakieś życzenia?
 * Alternatywna forma zaliczenia: referat (koniecznie ciekawy!)
 * ...możliwe  także inne formy.
 
-# Języki funkcyjne
+# Materiały
+
+~~~~~
+$ cabal install pandoc
+$ PATH=~/.cabal/bin:$PATH            # Linux
+$ PATH=~/Library/Haskell/bin:$PATH   # OS X
+$ git clone git://github.com/mbenke/zpf2013.git
+$ cd zpf2013/Slides
+$ make
+~~~~~
+
+# języki funkcyjne
 * typowane dynamicznie, gorliwe: Lisp
 * typowane statycznie, gorliwe, nieczyste: ML
 * typowane statycznie, leniwe, czyste: Haskell
