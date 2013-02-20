@@ -12,13 +12,20 @@ data Reg c
   deriving (Eq,Show)    
 ~~~~
 
-Uzupełnij moduł RegExtra o definicje omówione poniżej (ewentualnie zastepując występujące w nim `undefined`).
-
 Dla danego wyrażenia r, przez L(r) oznaczamy język tego wyrażenia,
 rozumiany w standardowy sposób (w razie wątpliwości prosze
 pytać). Mówimy, że r akceptuje słowo w gdy w należy do L(r).
- Podobnie
-mówimy, że wyrażenie akceptuje (albo reprezentuje) język.
+Podobnie mówimy, że wyrażenie akceptuje (albo reprezentuje) język.
+
+Uzupełnij moduł RegExtra o definicje omówione poniżej (ewentualnie zastepując występujące w nim `undefined`).
+
+## Eq
+
+Zdefiniuj instancję klasy `Eq` dla Reg:
+
+~~~~
+instance Eq c => Eq (Reg c) where
+~~~~
 
 ## Monoid
 
