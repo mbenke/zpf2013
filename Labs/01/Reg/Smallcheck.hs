@@ -8,12 +8,11 @@ import Mon
 import Reg
 import RegExtra
 
-equivRefl :: Reg AB -> Bool
-equivRefl x = x === x
+reflAB :: AB -> Bool
+reflAB x = x == x
 
--- equivCompatible :: Monad m => Reg AB -> Reg AB -> Property m
-equivCompatible :: Reg AB -> Reg AB -> Bool
-equivCompatible c d = not ((Lit c) === (Lit d)) || c == d
+reflReg :: Reg AB -> Bool
+reflReg x = x === x
 
 leftUnit :: Reg AB -> Bool
 leftUnit x = m1 <> x === x
@@ -37,35 +36,28 @@ nullableSimpl, emptySimpl :: Reg AB -> Bool
 nullableSimpl x = nullable x `iff` nullable (simpl x)
 emptySimpl x = empty x `iff` empty (simpl x)
 
-{-
-recLeftNul :: Reg AB -> Property
-recLeftNul y = forAllNullable $ \x ->  
-               forAllMatching y $ \cs -> 
-               accepts y cs ==> accepts (x:>y) cs
+recLeftNul :: (Monad m) => Reg AB -> Reg AB -> [AB] -> Property m
+recLeftNul x y cs = nullable x ==> accepts y cs ==> accepts (x:>y) cs
 
-recRightNul :: Reg AB -> Property
-recRightNul x = forAllNullable $ \y ->  
-               forAllMatching x $ \cs -> 
-               accepts x cs ==> accepts (x:>y) cs
--}
+recRightNul :: (Monad m) => Reg AB -> Reg AB -> [AB] -> Property m
+recRightNul x y cs = nullable y ==> accepts x cs ==> accepts (x:>y) cs
+               
 write = putStr
 writeln = putStrLn
 main = do 
-     smallCheck 3 equivRefl
-     smallCheck 1 equivCompatible
+     smallCheck 3 reflReg
      smallCheck 3 leftUnit
      smallCheck 3 rightUnit
      writeln "assoc x y z = (x<>y)<>z == x<>(y<>z)"
      smallCheck 2 assoc
---     smallCheck 3 nullableSimpl
-
-
+     smallCheck 3 nullableSimpl
+     smallCheck 3 emptySimpl
+     smallCheck 2 recLeftNul
+     smallCheck 2 recRightNul     
+     
 instance Monad m => Serial m AB where
   series = cons0 A \/ cons0 B
 
-
--- instance Serial IO AB
--- instance Serial m a => Serial m (Reg a)
 
 instance (Monad m, Serial m c) => Serial m (Reg c) where
          series =  cons0 Eps 
