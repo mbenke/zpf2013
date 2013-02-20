@@ -1,10 +1,14 @@
-BINFILES=TestReg
+BINFILES=TestReg Smallcheck
 PDFLATEX=pdflatex -interaction=batchmode
 
-test: TestReg
+test: TestReg Smallcheck
 	./TestReg
+	./Smallcheck
 
 TestReg: TestReg.hs Reg.hs RegExtra.hs Mon.hs
+	ghc -O2 --make $@
+
+Smallcheck: Smallcheck.hs Reg.hs RegExtra.hs Mon.hs
 	ghc -O2 --make $@
 
 %.tex: %.md

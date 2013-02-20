@@ -8,13 +8,13 @@ import Reg
 import RegExtra
   
 leftUnit :: Reg AB -> Bool
-leftUnit x = m1 <> x == x
+leftUnit x = m1 <> x === x
 
 rightUnit :: Reg AB -> Bool
-rightUnit x =  x <> m1 == x
+rightUnit x =  x <> m1 === x
 
 assoc :: Reg AB -> Reg AB -> Reg AB -> Bool
-assoc x y z = (x<>y)<>z == x<>(y<>z)
+assoc x y z = (x<>y)<>z === x<>(y<>z)
 
 nullableUnit :: Bool
 nullableUnit = nullable m1

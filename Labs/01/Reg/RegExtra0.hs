@@ -4,6 +4,13 @@ import Reg
 
 data AB = A | B deriving(Eq,Ord,Show)
 
+infix 4 ===
+class Equiv a where
+  (===) :: a -> a -> Bool
+
+instance (Eq c) => Equiv (Reg c) where
+   r1 === r2 = False
+
 instance Mon (Reg c) where
   m1 = Empty
   x <> y = Empty

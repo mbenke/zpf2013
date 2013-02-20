@@ -19,13 +19,23 @@ Podobnie mówimy, że wyrażenie akceptuje (albo reprezentuje) język.
 
 Uzupełnij moduł RegExtra o definicje omówione poniżej (ewentualnie zastepując występujące w nim `undefined`).
 
-## Eq
+## Equiv
 
-Zdefiniuj instancję klasy `Eq` dla Reg:
+Zdefiniuj instancje klasy Equiv dla Reg:
 
 ~~~~
-instance Eq c => Eq (Reg c) where
+infix 4 ===
+class Equiv a where
+  (===) :: a -> a -> Bool
+
+instance (Eq c) => Equiv (Reg c) where
 ~~~~
+
+tak aby relacja `===` była relacją równowazności, a ponadto
+
+~~~~~
+equivCompatible c d = (Lit c) === (Lit d) ==> c == d
+~~~~~
 
 ## Monoid
 
@@ -40,9 +50,9 @@ class Mon m where
 Uzupełnij instancję `instance Mon (Reg c)` tak, aby dla dowolnych `x y z` spełnione były własności
 
 ~~~~ {.haskell}
-leftUnit x = m1 <> x == x
-rightUnit x =  x <> m1 == x
-assoc x y z = (x<>y)<>z == x<>(y<>z)
+leftUnit x = m1 <> x === x
+rightUnit x =  x <> m1 === x
+assoc x y z = (x<>y)<>z === x<>(y<>z)
 ~~~~
 
 (mówimy że np. własność `assoc` jest spełniona jesli dla każdych `x y z` odpowiedniego typu `assoc x y z` daje wartość `True`)
