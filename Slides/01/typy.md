@@ -34,6 +34,7 @@ Jakieś życzenia?
 # Materiały
 
 ~~~~~
+$ cabal update
 $ cabal install pandoc
 $ PATH=~/.cabal/bin:$PATH            # Linux
 $ PATH=~/Library/Haskell/bin:$PATH   # OS X
