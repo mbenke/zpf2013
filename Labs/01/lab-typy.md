@@ -48,35 +48,3 @@ vhead (x :> xs) = x
 
 **Ćwiczenie:** dopisać `vtail`, `vlast`
 
-# Klasy wieloparametrowe
-
-* Czasami potrzebujemy opisać nie tyle pojedynczy typ, co relacje między typami:
-
-    ~~~~ {.haskell}
-    {-#LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-    class Iso a b where
-      iso :: a -> b
-      osi :: b -> a
-      
-    instance Iso a a where
-      iso = id
-      osi = id
-
-    instance Iso ((a,b)->c) (a->b->c) where
-      iso = curry
-      osi = uncurry
-
-    instance (Iso a b) => Iso [a] [b] where
-     iso = map iso
-     osi = map osi
-    ~~~~
-
-* Uwaga: w ostatnim przykładzie `iso` ma inny typ po lewej, inny po prawej 
-
-* Ćwiczenie: napisz jeszcze jakieś instancje klasy `Iso`
-
-
-    ~~~~ {.haskell}
-    instance (Functor f, Iso a b) => Iso (f a) (f b) where 
-    instance Iso (a->b->c) (b->a->c) where
-    ~~~~
