@@ -44,15 +44,22 @@ recRightNul x y cs = nullable y ==> accepts x cs ==> accepts (x:>y) cs
                
 write = putStr
 writeln = putStrLn
-main = do 
+main = do
+     writeln "reflReg"
      smallCheck 3 reflReg
+     writeln "left unit"
      smallCheck 3 leftUnit
+     writeln "right unit"
      smallCheck 3 rightUnit
      writeln "assoc x y z = (x<>y)<>z == x<>(y<>z)"
      smallCheck 2 assoc
+     writeln "nullableSimpl"
      smallCheck 3 nullableSimpl
+     writeln "emptySimpl"
      smallCheck 3 emptySimpl
+     writeln "recLeftNul"
      smallCheck 2 recLeftNul
+     writeln "recRightNul"
      smallCheck 2 recRightNul     
      
 instance Monad m => Serial m AB where
