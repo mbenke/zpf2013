@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Marcin Benke" />
   <title>Zaawansowane programowanie funkcyjne</title>
+  <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; }
+table.sourceCode { width: 100%; line-height: 100%; }
 td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
 td.sourceCode { padding-left: 5px; }
 code > span.kw { color: #007020; font-weight: bold; }
@@ -29,7 +30,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
   </style>
   <link rel="stylesheet" type="text/css" media="screen, projection, print"
     href="http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
-  <script src="https://d3eoax9i5htok0.cloudfront.net/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+  <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
   <script src="http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz"
     charset="utf-8" type="text/javascript"></script>
 </head>
@@ -39,11 +40,11 @@ code > span.er { color: #ff0000; font-weight: bold; }
   <p class="author">
 Marcin Benke
   </p>
-  <p class="date">15 lutego 2012</p>
+  <p class="date">20 lutego 2013</p>
 </div>
-<div class="section slide level1" id="section">
-<h1></h1>
-<meta name="duration" content="80" />
+<div class="section slide level1">
+
+<p><meta name="duration" content="80" /></p>
 </div>
 <div class="section slide level1" id="plan-wykładu">
 <h1>Plan wykładu</h1>
@@ -55,15 +56,14 @@ Marcin Benke
 <li>Klasy wieloparametrowe, zależności funkcyjne</li>
 <li>Rodziny typów, typy skojarzone, uogólnione typy algebraiczne (GADT)</li>
 </ul></li>
-<li>Typy zależne, Agda, Alonzo</li>
+<li>Typy zależne, Agda, Idris</li>
 <li>Metody kontrolowania efektów w języku funkcyjnym (ok. 6 wykładów)
 <ul>
 <li>Rodzaje efektów (błędy, stan, I/O, nawracanie)</li>
 <li>Monady Error, State, IO, List</li>
-<li>Studium biblioteki monadycznej</li>
+<li>Studium biblioteki monadynej</li>
 <li>Funktory aplikatywne i idiomy</li>
-<li>Studium biblioteki idiomatycznej</li>
-<li>Strzałki</li>
+<li>Studium biblioteki idiomatycznej <!--    * Strzałki --></li>
 </ul></li>
 <li>Programowanie równoległe w Haskellu
 <ul>
@@ -83,15 +83,25 @@ Marcin Benke
 <li>...możliwe także inne formy.</li>
 </ul>
 </div>
+<div class="section slide level1" id="materiały">
+<h1>Materiały</h1>
+<pre><code>$ cabal update
+$ cabal install pandoc
+$ PATH=~/.cabal/bin:$PATH            # Linux
+$ PATH=~/Library/Haskell/bin:$PATH   # OS X
+$ git clone git://github.com/mbenke/zpf2013.git
+$ cd zpf2013/Slides
+$ make</code></pre>
+</div>
 <div class="section slide level1" id="języki-funkcyjne">
-<h1>Języki funkcyjne</h1>
+<h1>języki funkcyjne</h1>
 <ul>
 <li>typowane dynamicznie, gorliwe: Lisp</li>
 <li>typowane statycznie, gorliwe, nieczyste: ML</li>
 <li>typowane statycznie, leniwe, czyste: Haskell</li>
 </ul>
 <p>Ten wykład: Haskell, ze szczególnym naciskiem na typy.</p>
-<p>Bogata struktura typów jest tym , co wyróżnia Haskell wśród innych języków.</p>
+<p>Bogata struktura typów jest tym, co wyróżnia Haskell wśród innych języków.</p>
 </div>
 <div class="section slide level1" id="typy-jako-język-specyfikacji">
 <h1>Typy jako język specyfikacji</h1>
@@ -102,7 +112,7 @@ f x <span class="fu">=</span> <span class="fu">?</span></code></pre>
 <ul>
 <li><p>Philip Wadler &quot;Theorems for Free&quot;</p></li>
 <li><p>Funkcja typu <code>a -&gt; IO b</code> może mieć efekty uboczne</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> <span class="dt">Data.IORef</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Data.IORef
 
 <span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">IORef</span> <span class="dt">Int</span>)
 f i <span class="fu">=</span> <span class="kw">do</span>
@@ -120,8 +130,8 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <h1>Typy jako język specyfikacji (2)</h1>
 <p>Funkcja typu <code>Integer -&gt; Integer</code> zasadniczo nie może mieć efektów ubocznych</p>
 <p>Liczby Fibonacciego w stałej pamięci</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> <span class="dt">Control.Monad.ST</span>
-<span class="kw">import</span> <span class="dt">Data.STRef</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Monad.ST
+<span class="kw">import</span> Data.STRef
 <span class="ot">fibST ::</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Integer</span>
 fibST n <span class="fu">=</span> 
     <span class="kw">if</span> n <span class="fu">&lt;</span> <span class="dv">2</span> <span class="kw">then</span> n <span class="kw">else</span> runST fib2 <span class="kw">where</span>
@@ -129,14 +139,14 @@ fibST n <span class="fu">=</span>
         x <span class="ot">&lt;-</span> newSTRef <span class="dv">0</span>
         y <span class="ot">&lt;-</span> newSTRef <span class="dv">1</span>
         fib3 n x y
-
+ 
       fib3 <span class="dv">0</span> x _ <span class="fu">=</span> readSTRef x
       fib3 n x y <span class="fu">=</span> <span class="kw">do</span>
               x&#39; <span class="ot">&lt;-</span> readSTRef x
               y&#39; <span class="ot">&lt;-</span> readSTRef y
               writeSTRef x y&#39;
               writeSTRef y (x&#39;<span class="fu">+</span>y&#39;)
-              fib3 (n<span class="dv">-1</span>) x y</code></pre>
+              fib3 (n<span class="fu">-</span><span class="dv">1</span>) x y</code></pre>
 <p>Jak to?</p>
 <pre><code>runST :: (forall s. ST s a) -&gt; a</code></pre>
 <p>Typ <code>runST</code> gwarantuje, że efekty uboczne nie wyciekają. Funkcja <code>fibST</code> jest czysta.</p>
@@ -260,10 +270,10 @@ module UsingVectorEquality {s₁ s₂} (S : Setoid s₁ s₂) where
 <span class="ot">{-# OPTIONS_GHC -fvectorise #-}</span>
 
 <span class="kw">module</span> <span class="dt">DotP</span> <span class="kw">where</span>
-<span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Prelude</span>
-<span class="kw">import</span> <span class="dt">Data.Array.Parallel</span>
-<span class="kw">import</span> <span class="dt">Data.Array.Parallel.Prelude</span>
-<span class="kw">import</span> <span class="dt">Data.Array.Parallel.Prelude.Double</span> <span class="kw">as</span> <span class="dt">D</span>
+<span class="kw">import</span> <span class="kw">qualified</span> Prelude
+<span class="kw">import</span> Data.Array.Parallel
+<span class="kw">import</span> Data.Array.Parallel.Prelude
+<span class="kw">import</span> Data.Array.Parallel.Prelude.Double <span class="kw">as</span> D
 
 <span class="ot">dotp_double ::</span> [<span class="fu">:</span><span class="dt">Double</span><span class="fu">:</span>] <span class="ot">-&gt;</span> [<span class="fu">:</span><span class="dt">Double</span><span class="fu">:</span>] <span class="ot">-&gt;</span> <span class="dt">Double</span>
 dotp_double xs ys <span class="fu">=</span> D.sumP [<span class="fu">:</span>x <span class="fu">*</span> y <span class="fu">|</span> x <span class="ot">&lt;-</span> xs <span class="fu">|</span> y <span class="ot">&lt;-</span> ys<span class="fu">:</span>]</code></pre>
@@ -294,27 +304,27 @@ dotp_double xs ys <span class="fu">=</span> D.sumP [<span class="fu">:</span>x <
 <ul>
 <li>Generalizacja:</li>
 </ul>
-<p>\[{\Gamma \vdash e :: t, a \notin FV( \Gamma )}\over {\Gamma \vdash e :: \forall a.t}\]</p>
-<!-- 
+<p><span class="math">\[{\Gamma \vdash e :: t, a \notin FV( \Gamma )}\over {\Gamma \vdash e :: \forall a.t}\]</span></p>
+<p><!-- 
 Jeśli $\Gamma \vdash e :: t, a \notin FV( \Gamma )$
-
+ 
 to $\Gamma \vdash e :: \forall a.t$
 
   Γ ⊢ e :: t, a∉FV(Γ)
 $$\Gamma \vdash e :: t$$ ,
  \(a \not\in FV(\Gamma) \) , 
 to $\Gamma \vdash e :: \forall a.t$
--->
+--></p>
 <p>Na przykład</p>
-<p>\[{ { \vdash map :: (a\to b) \to [a] \to [b] } \over
+<p><span class="math">\[{ { \vdash map :: (a\to b) \to [a] \to [b] } \over
    { \vdash map :: \forall b. (a\to b) \to [a] \to [b] } } \over
-   { \vdash map :: \forall a. \forall b. (a\to b) \to [a] \to [b] } \]</p>
+   { \vdash map :: \forall a. \forall b. (a\to b) \to [a] \to [b] } \]</span></p>
 <p>Uwaga:</p>
-<p>\[ f : a \to b \not \vdash map\; f :: \forall b. [a] \to [b]  \]</p>
+<p><span class="math">\[ f : a \to b \not \vdash map\; f :: \forall b. [a] \to [b]  \]</span></p>
 <ul>
 <li>Instancjacja</li>
 </ul>
-<p>\[ {\Gamma \vdash e :: \forall a.t}\over {\Gamma \vdash e :: t[a:=s]} \]</p>
+<p><span class="math">\[ {\Gamma \vdash e :: \forall a.t}\over {\Gamma \vdash e :: t[a:=s]} \]</span></p>
 </div>
 <div class="section slide level1" id="klasy">
 <h1>Klasy</h1>
@@ -348,7 +358,7 @@ n <span class="dt">F</span> <span class="fu">=</span> <span class="dt">T</span>
 
 <span class="kw">class</span> <span class="dt">E</span> a <span class="kw">where</span>
 <span class="ot">  eq ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">B</span>
-
+  
 <span class="kw">instance</span> <span class="dt">E</span> <span class="dt">B</span> <span class="kw">where</span> 
   eq x y <span class="fu">=</span> <span class="kw">case</span> x <span class="kw">of</span>
     <span class="dt">T</span> <span class="ot">-&gt;</span> y
@@ -439,7 +449,7 @@ neq x y <span class="fu">=</span> n (eq x y)</code></pre>
 <span class="kw">class</span> <span class="dt">C1</span> a <span class="kw">where</span>
 <span class="ot">  m0 ::</span> a 
 <span class="ot">  m1 ::</span> a <span class="ot">-&gt;</span> a
-
+  
 <span class="kw">class</span> <span class="dt">C1</span> a <span class="ot">=&gt;</span> <span class="dt">C2</span> a <span class="kw">where</span>
 <span class="ot">  m2 ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a</code></pre>
 </div>
