@@ -28,7 +28,7 @@
     add three one :: Succ (Succ (Succ (Succ Zero)))
     ~~~~
 
-* Ćwiczenie: rozszerzyć o mnoćenie i silnię
+* Ćwiczenie: rozszerzyć o mnożenie i silnię
 
 # Typy jako język programowania (2)
 Wektory przy użyciu klas:
@@ -201,7 +201,7 @@ instance (Iso a b) => Iso [a] [b] where
  osi = map osi
 ~~~~
 
-* Uwaga: w ostatnim przyk³adzie `iso` ma inny typ po lewej, inny po prawej 
+* Uwaga: w ostatnim przykładzie `iso` ma inny typ po lewej, inny po prawej 
 
 * Ćwiczenie: napisz jeszcze jakieś instancje klasy `Iso`
 
@@ -230,7 +230,7 @@ class Foldable t where
    foldr :: (a -> b -> b) -> b -> t a -> b
 ~~~~
 
-(tu uproszcozne, patrz Data.Foldable)
+(tu uproszczone, patrz Data.Foldable)
 
 **Ćwiczenie:** napisz instancje
 
