@@ -207,12 +207,13 @@ ColList = \@ a -> CD { insert = (:) @ a, member =
 
 # Problem z klasami wieloparametrowymi
 
-`BadCollection2.hs`
-
-~~~~ {.haskell}
+ <!--- `BadCollection2.hs` -->
+<!---
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+-->
 
+~~~~ {.haskell}
 class Collection c e where
   insert :: e -> c -> c
   member :: e -> c -> Bool
@@ -292,7 +293,7 @@ instance Functor Vec where
 instance Mul a b c => Mul a (Vec b) (Vec c) where
   a * b = fmap (a*) b
   
-f b x y = if b then  x * (Vec [y]) else y
+f t x y = if t then  x * (Vec [y]) else y
 ~~~~
 
 Jakiego typu jest f? Niech x::a, y::b. 
@@ -362,7 +363,6 @@ Inny, może ciekawszy przykład
 
 ~~~~ {.haskell}
 {-# LANGUAGE TypeFamilies, FlexibleInstances #-}
-
 import Data.Array
 
 type family ListOfIndex i a
