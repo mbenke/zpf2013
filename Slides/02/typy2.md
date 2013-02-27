@@ -359,22 +359,48 @@ Trochę dalej powiemy sobie o nich bardziej systematycznie.
 
 # Rodziny typów
 
-Inny, może ciekawszy przykład
+Inny, może ciekawszy przykład: budowanie tablic wielowymiarowych z zagnieżdżonych list.
+
+Moduł `Data.Array` definiuje typ `Array i a` oraz funkcję
+
+~~~~ {.haskell}
+listArray :: Ix i => (i, i) -> [e] -> Array i e
+instance Ix Int
+instance (Ix a, Ix b) => Ix (a, b)
+~~~~
+
+Chcemy uogólnić to do tablic wielowymiarowych tak, aby
+
+~~~~ {.haskell}
+arrFromNestedLists [[1,2],[3,4]] :: Array (Int,Int) Int
+array ((0,0),(1,1)) [((0,0),1),((0,1),2),((1,0),3),((1,1),4)]
+~~~~
+
+w tym celu musimy powiązać typy indeksów z typami list:
+
+~~~~ {.haskell}
+type family ListOfIndex i a
+type instance ListOfIndex Int a = [a]
+type instance ListOfIndex (Int, i) a = [ListOfIndex i a]
+~~~~
+
+# Rodziny typów
 
 ~~~~ {.haskell}
 {-# LANGUAGE TypeFamilies, FlexibleInstances #-}
+module ArrFromNested where
 import Data.Array
 
 type family ListOfIndex i a
-type instance ListOfIndex () a = a
+type instance ListOfIndex Int a = [a]
 type instance ListOfIndex (Int, i) a = [ListOfIndex i a]
 
 class Ix i => ArrConv i where
   acArgs :: ListOfIndex i a -> ((i, i), [a])
 
-instance ArrConv () where
-  acArgs x = (((), ()), [x])
-
+instance ArrConv Int where
+  acArgs xs = ((0,length xs -1),xs)
+  
 instance ArrConv i => ArrConv (Int, i) where
   acArgs lst =
     (((0, inStart), (length lst - 1, inEnd)), args >>= snd)
@@ -386,9 +412,7 @@ arrFromNestedLists :: ArrConv i => ListOfIndex i a -> Array i a
 arrFromNestedLists = uncurry listArray . acArgs
 ~~~~
 
-Źródło:
-
-<http://stackoverflow.com/questions/2043610/haskell-type-families-and-dummy-arguments>
+Źródło: <http://stackoverflow.com/questions/2043610/>
 
 # Typy skojarzone
 
