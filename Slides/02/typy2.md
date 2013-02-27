@@ -651,7 +651,7 @@ $$ {k_1,k_2 : \Box}\over {k_1 \to k_2 : \Box} $$
 
 $${\Gamma(a:k_1)\vdash C : k_2 \quad k_1\to k_2:\Box}\over {\Gamma\vdash \lambda a.C:k_1 \to k_2} $$
 
-czyli znowu podobnie jak "zwykła" abstrakcja. Czy moiglibyśmy to ujednolicić?
+czyli znowu podobnie jak "zwykła" abstrakcja. Czy moglibyśmy to ujednolicić?
 
 # Systemy typów (2)
 
