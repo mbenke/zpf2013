@@ -1,4 +1,4 @@
-# Typy jako jêzyk programowania
+# Typy jako jÄ™zyk programowania
 
 *    Funkcje na typach obliczane w czasie kompilacji
 
@@ -28,10 +28,10 @@
     add three one :: Succ (Succ (Succ (Succ Zero)))
     ~~~~
 
-* Æwiczenie: rozszerzyæ o mno¿enie i silniê
+* Ä†wiczenie: rozszerzyÄ‡ o mnoÄ‡enie i silniÄ™
 
-# Typy jako jêzyk programowania (2)
-Wektory przy u¿yciu klas:
+# Typy jako jÄ™zyk programowania (2)
+Wektory przy uÅ¼yciu klas:
 
 ~~~~ {.haskell}
 data Vec :: * -> * -> * where
@@ -42,11 +42,11 @@ vhead :: Vec (Succ n) a -> a
 vhead (x :> xs) = x
 ~~~~
 
-**Æwiczenie:** dopisaæ `vtail`, `vlast`
+**Ä†wiczenie:** dopisaÄ‡ `vtail`, `vlast`
 
 # Klasy 
 
-Uzupe³nij brakuj±ce definicje:
+UzupeÅ‚nij brakujÄ…ce definicje:
 
 ~~~~  {.haskell}
 class Fluffy f where
@@ -174,13 +174,13 @@ instance Misty (State s) where
   unicorn = error "todo"
 ~~~~
 
-¼ród³o:
+ÅºrÃ³dÅ‚o:
 
 http://blog.tmorris.net/20-intermediate-haskell-exercises/
 
 # Klasy wieloparametrowe
 
-Rozwa¿my klasê Iso z wyk³adu:
+RozwaÅ¼my klasÄ™ Iso z wykÅ‚adu:
 
 ~~~~ {.haskell}
 {-#LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
@@ -201,9 +201,9 @@ instance (Iso a b) => Iso [a] [b] where
  osi = map osi
 ~~~~
 
-* Uwaga: w ostatnim przyk³adzie `iso` ma inny typ po lewej, inny po prawej 
+* Uwaga: w ostatnim przykÂ³adzie `iso` ma inny typ po lewej, inny po prawej 
 
-* Æwiczenie: napisz jeszcze jakie¶ instancje klasy `Iso`
+* Ä†wiczenie: napisz jeszcze jakieÅ› instancje klasy `Iso`
 
 
     ~~~~ {.haskell}
@@ -220,7 +220,7 @@ Na listach mamy
 foldr :: (a -> b -> b) -> b -> [a] -> b
 ~~~~
 
-mo¿emy to uogólniæ na inne konstruktory typów:
+moÅ¼emy to uogÃ³lniÄ‡ na inne konstruktory typÃ³w:
 
 ~~~~  {.haskell}
 import Prelude hiding(foldr)
@@ -232,7 +232,7 @@ class Foldable t where
 
 (tu uproszcozne, patrz Data.Foldable)
 
-**Æwiczenie:** napisz instancje
+**Ä†wiczenie:** napisz instancje
 
 ~~~~  {.haskell}
 Foldable []	 
@@ -240,9 +240,9 @@ Foldable Maybe
 Ix i => Foldable (Array i)
 ~~~~
 
-(gdzie Array to tablice z pierwszego labu).
+(gdzie Array to tablice z Data.Array)
 
-Mo¿na tak¿e zdefiniowac inne metody Foldable:
+MoÅ¼na take zdefiniowaÄ‡ inne metody Foldable:
 
 ~~~~  {.haskell}
 -- | Map each element of the structure to a monoid,
