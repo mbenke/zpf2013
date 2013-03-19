@@ -12,4 +12,4 @@ igetchar () = unsafePerformIO $ do
 
 {-# NOINLINE iputchar #-}
 iputchar :: Char -> ()
-iputchar = unsafePerformIO . putChar
+iputchar c = unsafePerformIO (putChar c >> hFlush stdout)
