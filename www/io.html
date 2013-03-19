@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+</head>
+<body>
+<h1 id="wejście-wyjście-w-językach-funkcyjnych">Wejście-wyjście w językach funkcyjnych</h1>
+<ul>
+<li><p>Niekontrolowane efekty uboczne (C, Lisp, ML) - nie nadaje się do użycia w języku leniwym</p></li>
+<li>strumienie (Landin, Henderson)- program jest funkcją String → String</li>
+<li><p>głównie dla języków leniwych</p></li>
+<li><p>strumienie synchronizowane (dialogue I/O)</p>
+<p>system operacyjny możemy traktowac jako funkcję</p>
+<pre><code>[Request] -&gt; [Response]</code></pre>
+<p>a program</p>
+<pre><code>[Response] -&gt; [Request]</code></pre></li>
+</ul>
+<h1 id="niekontrolowane-efekty-uboczne">Niekontrolowane efekty uboczne</h1>
+<p>Prawie jak w ML:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Impure
+<span class="co">-- igetchar :: () -&gt; Char</span>
+<span class="co">-- iputchar :: Char -&gt; ()</span>
+
+<span class="ot">printStr ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> [()]
+printStr <span class="fu">=</span> <span class="fu">map</span> iputchar
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> printStr <span class="st">&quot;Hello\n&quot;</span> <span class="ot">`seq`</span> <span class="fu">return</span> () 
+
+<span class="co">-- *Impure&gt; iputchar &#39;x&#39;</span>
+<span class="co">-- x()</span>
+
+<span class="co">-- *Bad1&gt; main</span>
+<span class="co">-- *Bad1&gt; </span></code></pre>
+<h1 id="inaczej">Inaczej</h1>
+<pre><code>printStr :: String -&gt; ()
+printStr [] = ()
+printStr (c:cs) = let
+ () = iputchar c 
+ () = printStr cs
+ in ()
+
+main = printStr &quot;Hello\n&quot; `seq` return () 
+-- *Bad2&gt; main
+-- *Bad2&gt; </code></pre>
+<h1 id="trzeba-wymuszac-ewaluacje">Trzeba wymuszac ewaluacje</h1>
+<pre><code>iprint = case iputchar &#39;a&#39; of -- wymuszenie ewaluacji
+  () -&gt; case igetchar () of
+     c -&gt; case iputchar c of
+       () -&gt; iputchar &#39;\n&#39;</code></pre>
+<p><strong>Ćwiczenie:</strong> używając tych funkcji:</p>
+<ul>
+<li>Napisz program który wypisze ustalony napis (np. &quot;hello&quot; na stdout)</li>
+<li>Napisz program kopiujący stdin na stdout.</li>
+</ul>
+<p><code>igetchar/iputchar</code> są zaimplementowane w Code/Impure.hs</p>
+<p>Wykonanie tego ćwiczenia powinno wyjaśnić czemu niekontrolowane efekty uboczne są nierealne w języku leniwym...</p>
+<h1 id="dygresja---ffi">Dygresja - FFI</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE ForeignFunctionInterface #-}</span>
+<span class="kw">module</span> <span class="dt">CIO</span>(ugetchar,uputchar) <span class="kw">where</span>
+<span class="kw">import</span> Foreign.C -- get the C types
+<span class="kw">import</span> System.IO.Unsafe 
+
+foreign <span class="kw">import</span> ccall &quot;stdio.h getchar&quot; cgetchar :: Int -&gt; Char
+foreign <span class="kw">import</span> ccall &quot;stdio.h putchar&quot; cputchar  :: Char -&gt; ()
+foreign <span class="kw">import</span> ccall &quot;eof.h eof_stdin&quot; ceof :: Int -&gt; Int
+
+<span class="ot">{-# NOINLINE ugetchar #-}</span>
+<span class="ot">ugetchar ::</span> () <span class="ot">-&gt;</span> <span class="dt">Char</span>
+ugetchar () <span class="fu">=</span> <span class="kw">case</span> ceof <span class="dv">0</span> <span class="kw">of</span>
+         <span class="dv">0</span> <span class="ot">-&gt;</span> cgetchar <span class="dv">0</span>
+         _ <span class="ot">-&gt;</span> <span class="ch">&#39;\0&#39;</span>
+
+uputchar <span class="fu">=</span> cputchar</code></pre>
+<h1 id="dialogowe-io">Dialogowe IO</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Dialogue</span> <span class="fu">=</span> [<span class="dt">Response</span>] <span class="ot">-&gt;</span> [<span class="dt">Request</span>]
+
+<span class="kw">data</span> <span class="dt">Response</span> 
+  <span class="fu">=</span> <span class="dt">Success</span>
+  <span class="fu">|</span> <span class="dt">Chr</span> <span class="dt">Char</span>
+  <span class="fu">|</span> <span class="dt">Str</span> <span class="dt">String</span>
+  <span class="fu">|</span> <span class="dt">StrList</span> [<span class="dt">String</span>]
+  <span class="fu">|</span> <span class="dt">Failure</span> <span class="fu">IOError</span>
+  <span class="kw">deriving</span>(<span class="kw">Show</span>)  
+
+<span class="kw">data</span> <span class="dt">Request</span>    
+  <span class="fu">=</span> <span class="dt">ReadChan</span> <span class="dt">Chan</span>
+  <span class="fu">|</span> <span class="dt">AppendChan</span> <span class="dt">Chan</span> <span class="dt">String</span>
+  <span class="fu">|</span> <span class="dt">ReadFile</span> <span class="dt">Path</span>
+  <span class="fu">|</span> <span class="dt">WriteFile</span> <span class="dt">Path</span> <span class="dt">String</span>
+  <span class="kw">deriving</span>(<span class="kw">Show</span>)    </code></pre>
+<p>Lista odpowiedzi jest ewaluowana leniwie; odpowiedź będzie analizowana dopiero po skonstruowaniu pierwszego żądania.</p>
+<h1 id="dialogowe-io-1">Dialogowe IO</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cat ::</span> <span class="dt">Dialogue</span>
+cat <span class="fu">~</span>(<span class="dt">Success</span> <span class="fu">:</span> <span class="fu">~</span>((<span class="dt">Str</span> userInput) <span class="fu">:</span> <span class="fu">~</span>(<span class="dt">Success</span> <span class="fu">:</span> <span class="fu">~</span>(r4 <span class="fu">:</span> _))))
+<span class="fu">=</span> [ <span class="dt">AppendChan</span> stdout <span class="st">&quot;enter filename\n&quot;</span>,
+    <span class="dt">ReadChan</span> stdin,
+    <span class="dt">AppendChan</span> stdout name,
+    <span class="dt">ReadFile</span> name,
+    <span class="dt">AppendChan</span> stdout
+            (<span class="kw">case</span> r4 <span class="kw">of</span>
+              <span class="dt">Str</span> contents <span class="ot">-&gt;</span> contents
+          <span class="dt">Failure</span> ioerr <span class="ot">-&gt;</span> <span class="st">&quot;can’t open file&quot;</span>)
+  ] <span class="kw">where</span> (name <span class="fu">:</span> _) <span class="fu">=</span> <span class="fu">lines</span> userInput</code></pre>
+<ul>
+<li>Zwróćmy uwagę na leniwe dopasowanie wzorca, oznaczone przez <code>~</code></li>
+<li>Widac, że dialogowe I/O jest nieco nieporęczne</li>
+<li>Trzeba dbać o kolejność wyliczania</li>
+<li>Problematyczna modularność (jak zbudować dialog z mniejszych dialogów?)</li>
+</ul>
+<h1 id="dialogowe-io---ćwiczenia">Dialogowe I/O - ćwiczenia</h1>
+<p>Moduł Code/Dialogue2.hs implementuje dialogowe IO. Używając go</p>
+<ul>
+<li>Napisz programy z poprzedniego zadania</li>
+<li>Napisz program kopiujący pliki będące jego argumentami</li>
+</ul>
+<p>Do uruchomienia dialogu służy funkcja <code>runDialogue :: Dialogue a -&gt; IO a</code></p>
+<p>(opcjonalnie) Zaimplementuj dialogowe I/O za pomocą z funkcji z modułu Impure, ewentualnie dopisując dodatkowe &quot;nieczyste&quot; funkcje.</p>
+<h1 id="kontynuacyjne-io">Kontynuacyjne I/O</h1>
+<p>Dialogi wygodniej opisywać w terminach kontynuacji: co zrobić z wynikiem, a co w wypadku błedu:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">SuccCont</span> <span class="fu">=</span> <span class="dt">Dialogue</span>
+<span class="kw">type</span> <span class="dt">FailCont</span> <span class="fu">=</span> <span class="fu">IOError</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="kw">type</span> <span class="dt">StrCont</span> <span class="fu">=</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+
+<span class="fu">readFile</span><span class="ot"> ::</span> <span class="dt">Name</span> <span class="ot">-&gt;</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">StrCont</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="fu">readFile</span> name <span class="fu">fail</span> <span class="fu">succ</span> <span class="fu">~</span>(resp<span class="fu">:</span>resps) <span class="fu">=</span>
+     <span class="dt">ReadFile</span> name <span class="fu">:</span> <span class="kw">case</span> resp <span class="kw">of</span>
+          <span class="dt">Str</span> val <span class="ot">-&gt;</span> <span class="fu">succ</span> val resps
+          <span class="dt">Failure</span> msg <span class="ot">-&gt;</span> <span class="fu">fail</span> msg resps
+
+<span class="ot">appendChan ::</span> <span class="dt">Chan</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">SuccCont</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="ot">readChan ::</span> <span class="dt">Chan</span> <span class="ot">-&gt;</span> <span class="dt">StrCont</span> <span class="ot">-&gt;</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span></code></pre>
+<h1 id="przykład">Przykład</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">catC ::</span> <span class="dt">Dialogue</span>
+catC <span class="fu">=</span> 
+     appendChan stdout <span class="st">&quot;enter filename\n&quot;</span> abort (
+     readChan stdin abort                       (\userInput <span class="ot">-&gt;</span>
+     letE (<span class="fu">lines</span> userInput)                     (\(name <span class="fu">:</span> _) <span class="ot">-&gt;</span>
+     appendChan stdout name abort               (
+     <span class="fu">readFile</span> name <span class="fu">fail</span>                         (\contents <span class="ot">-&gt;</span>
+     appendChan stdout contents abort done)))))
+     <span class="kw">where</span>
+       <span class="fu">fail</span> ioerr <span class="fu">=</span> appendChan stdout <span class="st">&quot;can’t open file&quot;</span> abort done
+
+<span class="ot">abort ::</span> <span class="dt">FailCont</span>
+abort err resps <span class="fu">=</span> []
+<span class="ot">letE ::</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> b
+letE x k <span class="fu">=</span> k x</code></pre>
+<ul>
+<li>Bardziej modularne</li>
+<li>Łatwiejsze sekwencjonowanie, ale ciągle trzeba dbać o kolejność wyliczania</li>
+</ul>
+<h1 id="kontynuacyjne-io---ćwiczenia">Kontynuacyjne I/O - ćwiczenia</h1>
+<p>Napisz funkcje realizujące kontynuacyjne I/O przy pomocy dialogowego I/O</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">SuccCont</span> a <span class="fu">=</span> a <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="kw">type</span> <span class="dt">FailCont</span> a <span class="fu">=</span> <span class="fu">IOError</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="kw">type</span> <span class="dt">Cont</span> a <span class="fu">=</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">SuccCont</span> a <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+
+<span class="ot">cgetchar ::</span> <span class="dt">Cont</span> <span class="dt">Char</span>
+<span class="ot">cputchar ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">Cont</span> ()</code></pre>
+<p>oraz inne potrzebne funkcje, po czym przepisz programy z poprzedniego zadania na wersję kontynuacyjną.</p>
+<h1 id="monady">Monady</h1>
+<p>Monada to konstruktor typów <code>M</code>, z operacjami</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">return</span><span class="ot"> ::</span> a <span class="ot">-&gt;</span> <span class="dt">M</span> a
+<span class="ot">(&gt;&gt;=)  ::</span> <span class="dt">M</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span>  <span class="dt">M</span> b) <span class="ot">-&gt;</span> <span class="dt">M</span> b</code></pre>
+<p>Elementami typu <code>M a</code> są obliczenia dające wynik typu <code>a</code> (z potencjalnymi efektami ubocznymi)</p>
+<ul>
+<li><code>return x</code> to obliczenie czyste</li>
+<li><p><code>&gt;&gt;=</code> sekwencjonuje obliczenie z jego kontynuacją, np.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">readChan stdin <span class="fu">&gt;&gt;=</span>   (\userInput <span class="ot">-&gt;</span> <span class="fu">...</span> )</code></pre></li>
+</ul>
+<h1 id="klasa-monad">Klasa Monad</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span>  <span class="kw">Monad</span> m  <span class="kw">where</span>
+    <span class="co">-- | Sequentially compose two actions, passing any value produced</span>
+    <span class="co">-- by the first as an argument to the second.</span>
+<span class="ot">    (&gt;&gt;=)       ::</span> forall a b<span class="fu">.</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b
+    <span class="co">-- | Sequentially compose two actions, discarding any value produced</span>
+    <span class="co">-- by the first, like sequencing operators (such as the semicolon)</span>
+    <span class="co">-- in imperative languages.</span>
+<span class="ot">    (&gt;&gt;)        ::</span> forall a b<span class="fu">.</span> m a <span class="ot">-&gt;</span> m b <span class="ot">-&gt;</span> m b
+        <span class="co">-- Explicit for-alls so that we know what order to</span>
+        <span class="co">-- give type arguments when desugaring</span>
+
+    <span class="co">-- | Inject a value into the monadic type.</span>
+<span class="ot">    return      ::</span> a <span class="ot">-&gt;</span> m a
+    <span class="co">-- | Fail with a message.  This operation is not part of the</span>
+    <span class="co">-- mathematical definition of a monad, but is invoked on pattern-match</span>
+    <span class="co">-- failure in a @do@ expression.</span>
+<span class="ot">    fail        ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> m a
+
+    <span class="ot">{-# INLINE (&gt;&gt;) #-}</span>
+    m <span class="fu">&gt;&gt;</span> k      <span class="fu">=</span> m <span class="fu">&gt;&gt;=</span> \_ <span class="ot">-&gt;</span> k
+    <span class="fu">fail</span> s      <span class="fu">=</span> <span class="fu">error</span> s</code></pre>
+<h1 id="przykłady-monad">Przykłady monad</h1>
+<ul>
+<li>Zmieniacz stanu</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">ST</span> s a <span class="fu">=</span> s <span class="ot">-&gt;</span> (a, s)</code></pre>
+<ul>
+<li>Czytelnik stanu - uproszczony zmieniacz</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">SR</span> s a <span class="fu">=</span> s <span class="ot">-&gt;</span> a</code></pre>
+<ul>
+<li>Pisarz stanu (s musi być monoidem)</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">SW</span> s a <span class="fu">=</span> (a,s)</code></pre>
+<ul>
+<li>Wyjątki</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Exc</span> e a <span class="fu">=</span> <span class="dt">Exception</span> e <span class="fu">|</span> <span class="dt">OK</span> a</code></pre>
+<h1 id="przykłady-monad-2">Przykłady monad 2</h1>
+<ul>
+<li>Kontynuacje</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Cont</span> r a <span class="fu">=</span> (a<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> r</code></pre>
+<ul>
+<li>Niedeterminizm</li>
+</ul>
+<pre><code>type List a = [a]</code></pre>
+<ul>
+<li>Parser</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">String</span> <span class="ot">-&gt;</span> [(a,<span class="dt">String</span>)]</code></pre>
+<ul>
+<li>Identity (Wrapper)</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Identity</span> a <span class="fu">=</span> <span class="dt">Identity</span> {<span class="ot">runIdentity ::</span> a}</code></pre>
+<p>http://blog.sigfpe.com/2007/04/trivial-monad.html</p>
+<h1 id="prawa-monadyki">Prawa monadyki</h1>
+<p>Każda monada musi spełniać następujące prawa:</p>
+<pre><code>   1. (return x) &gt;&gt;= k == k x
+   2. m &gt;&gt;= return == m
+   3. (m &gt;&gt;= f) &gt;&gt;= g == m &gt;&gt;= (\x -&gt; (f x &gt;&gt;= g))</code></pre>
+<p>Pierwsze dwa prawa mówią, że <code>return</code> nie ma efektów; jest elementem neutralnym dla <code>(&gt;&gt;=)</code></p>
+<p>Trzecie prawo mówi, że sekwencjonowanie obliczeń jest łączne, czyli w pewnym sensie, że</p>
+<pre><code> (o1;o2);o3 === o1;(o2;o3)</code></pre>
+<p>...i możemy je traktować jako sekwencję <code>o1;o2;o3</code></p>
+<h1 id="prawa-monadyki-inaczej">Prawa monadyki, inaczej</h1>
+<pre><code>(&gt;=&gt;)       :: Monad m =&gt; (a -&gt; m b) -&gt; (b -&gt; m c) -&gt; (a -&gt; m c)
+f &gt;=&gt; g     = \x -&gt; (f x &gt;&gt;= g)
+
+1. return &gt;=&gt; g     = g
+2. f &gt;=&gt; return     = f
+3. (f &gt;=&gt; g) &gt;=&gt; h  = f &gt;=&gt; (g &gt;=&gt; h)</code></pre>
+<p>Ponadto każda monada powinna być instancją klasy <code>Functor</code>, oraz</p>
+<pre><code>fmap f xs = xs &gt;&gt;= (return . f)</code></pre>
+<h1 id="monadyczne-io">Monadyczne I/O</h1>
+<p>W wersji kontynuacyjnej mieliśmy funkcje:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">readFile</span><span class="ot">   ::</span> <span class="dt">Name</span> <span class="ot">-&gt;</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">StrCont</span>  <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="ot">appendChan ::</span> <span class="dt">Chan</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">SuccCont</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="ot">readChan   ::</span> <span class="dt">Chan</span> <span class="ot">-&gt;</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">StrCont</span>  <span class="ot">-&gt;</span> <span class="dt">Dialogue</span></code></pre>
+<p>Używając monad, możemy użyć akcji IO o określonym typie wyniku:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">IO</span> a <span class="fu">=</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">SuccCont</span> a <span class="ot">-&gt;</span> <span class="dt">Dialogue</span>
+<span class="fu">readFile</span><span class="ot">   ::</span> <span class="dt">Name</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
+<span class="ot">readChan   ::</span> <span class="dt">Chan</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span>
+<span class="ot">appendChan ::</span> <span class="dt">Chan</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+
+<span class="ot">throw ::</span> <span class="fu">IOError</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+<span class="fu">catch</span><span class="ot"> ::</span> <span class="dt">IO</span> a <span class="ot">-&gt;</span>  (<span class="fu">IOError</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> a) <span class="ot">-&gt;</span> <span class="dt">IO</span> a</code></pre>
+<h1 id="przykład-1">Przykład</h1>
+<p>Akcje możemy sekwencjonować używając <code>&gt;&gt;=</code></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">catM ::</span> <span class="dt">IO</span> ()
+catM  <span class="fu">=</span> appendChan stdout <span class="st">&quot;enter filename\n&quot;</span> <span class="fu">&gt;&gt;</span>
+        readChan stdin                       <span class="fu">&gt;&gt;=</span> \userInput <span class="ot">-&gt;</span>
+        <span class="kw">let</span> (name <span class="fu">:</span> _) <span class="fu">=</span> <span class="fu">lines</span> userInput     <span class="kw">in</span>
+        appendChan stdout name               <span class="fu">&gt;&gt;</span>
+        <span class="fu">catch</span> (<span class="fu">readFile</span> name <span class="fu">&gt;&gt;=</span> \contents <span class="ot">-&gt;</span>
+              appendChan stdout contents)
+             (appendChan stdout <span class="st">&quot;can’t open file&quot;</span>)</code></pre>
+<p>Zauważmy, że nigdzie nie polegamy na tym, że implementacja jest dialogowa/kontynuacyjna.</p>
+<p>Możemy zatem użyć innej implementacji, np.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">IO</span> a <span class="fu">=</span> <span class="dt">World</span> <span class="ot">-&gt;</span> (a, <span class="dt">World</span>)</code></pre>
+<h1 id="notacja-do">Notacja <code>do</code></h1>
+<pre><code>do e = e
+
+do { e1 ; stmts } = e &gt;&gt; do {stmts}
+
+do { v &lt;- e ; stmts } = e &gt;&gt;= \x -&gt; do {stmts}
+
+do { let decls; stmts } = let decls in do {stmts}</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">catM ::</span> <span class="dt">IO</span> ()
+catM  <span class="fu">=</span> <span class="kw">do</span> 
+   appendChan stdout <span class="st">&quot;enter filename\n&quot;</span>
+   userInput <span class="ot">&lt;-</span> readChan stdin
+   <span class="kw">let</span> (name <span class="fu">:</span> _) <span class="fu">=</span> <span class="fu">lines</span> userInput
+   appendChan stdout name     
+   <span class="fu">catch</span> (<span class="kw">do</span> { contents <span class="ot">&lt;-</span> <span class="fu">readFile</span> name; appendChan stdout contents})
+         (appendChan stdout <span class="st">&quot;can’t open file&quot;</span>)</code></pre>
+<h1 id="monadyczne-io---ćwiczenia">Monadyczne I/O - ćwiczenia</h1>
+<ol style="list-style-type: decimal">
+<li><p>Używając funkcji z pierwszego zadania stwórz monadę własną monadę I/O: MIO a, z operacjami</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">mgetchar ::</span> <span class="dt">MIO</span> <span class="dt">Char</span>
+<span class="ot">mputchar ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">MIO</span> ()
+<span class="ot">runMIO ::</span> <span class="dt">MIO</span> () <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
+<p>można tu użyć definicji</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">IO</span> a <span class="fu">=</span> <span class="dt">World</span> <span class="ot">-&gt;</span> (a, <span class="dt">World</span>)</code></pre>
+<p>pierwsze ćwiczenie powinno podpowiedzieć, czym będzie <code>World</code></p></li>
+<li><p>Napisz monadę DIO implementującą monadyczne IO przy pomocy kontynuacyjnego IO. Przepisz programy z poprzedniego zadania tak, by używały DIO.</p></li>
+</ol>
+</body>
+</html>
