@@ -1,6 +1,7 @@
 module Dialogue1 where
 import qualified System.IO as Sys       
 import System.IO.Error(catchIOError)
+import Control.Exception(catch)
 
 type Dialogue = [Response] -> [Request]
 
@@ -34,6 +35,7 @@ runDialogue d = case (d undefined) of
 runRequest :: Request -> IO Response
 runRequest r = runR r `catchIOError` \e -> return (Failure e)
 
+
 runR (AppendChan h s) = Sys.hPutStr h s >> return Success
-runR (ReadChan h ) = fmap Chr (Sys.hGetChar h)
+runR (ReadChan h ) = fmap Str (Sys.hGetContents h)
 runR (ReadFile p) = fmap Str (readFile p)
