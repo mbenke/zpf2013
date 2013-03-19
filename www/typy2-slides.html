@@ -194,11 +194,11 @@ ColList = \@ a -&gt; CD { insert = (:) @ a, member = </code></pre>
 </div>
 <div class="section slide level1" id="problem-z-klasami-wieloparametrowymi-2">
 <h1>Problem z klasami wieloparametrowymi</h1>
-<p><code>BadCollection2.hs</code></p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE MultiParamTypeClasses #-}</span>
-<span class="ot">{-# LANGUAGE FlexibleInstances #-}</span>
-
-<span class="kw">class</span> <span class="dt">Collection</span> c e <span class="kw">where</span>
+<p><!--- `BadCollection2.hs` --> <!---
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+--></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Collection</span> c e <span class="kw">where</span>
 <span class="ot">  insert ::</span> e <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> c
 <span class="ot">  member ::</span> e <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Bool</span>
 
@@ -263,7 +263,7 @@ problem3 <span class="fu">=</span> ins2 <span class="kw">True</span> <span class
 <span class="kw">instance</span> <span class="dt">Mul</span> a b c <span class="ot">=&gt;</span> <span class="dt">Mul</span> a (<span class="dt">Vec</span> b) (<span class="dt">Vec</span> c) <span class="kw">where</span>
   a <span class="fu">*</span> b <span class="fu">=</span> <span class="fu">fmap</span> (a<span class="fu">*</span>) b
   
-f b x y <span class="fu">=</span> <span class="kw">if</span> b <span class="kw">then</span>  x <span class="fu">*</span> (<span class="dt">Vec</span> [y]) <span class="kw">else</span> y</code></pre>
+f t x y <span class="fu">=</span> <span class="kw">if</span> t <span class="kw">then</span>  x <span class="fu">*</span> (<span class="dt">Vec</span> [y]) <span class="kw">else</span> y</code></pre>
 <p>Jakiego typu jest f? Niech x::a, y::b.</p>
 <p>Wtedy typem wyniku jest b i musimy mieć instancję <code>Mul a (Vec b) b</code></p>
 <p>Z kolei <code>a b -&gt; c</code> implikuje, że <code>b = Vec c</code> dla pewnego c, czyli szukamy instancji</p>
@@ -312,21 +312,35 @@ f b x y <span class="fu">=</span> <span class="kw">if</span> b <span class="kw">
 </div>
 <div class="section slide level1" id="rodziny-typów-1">
 <h1>Rodziny typów</h1>
-<p>Inny, może ciekawszy przykład</p>
+<p>Inny, może ciekawszy przykład: budowanie tablic wielowymiarowych z zagnieżdżonych list.</p>
+<p>Moduł <code>Data.Array</code> definiuje typ <code>Array i a</code> oraz funkcję</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">listArray ::</span> <span class="kw">Ix</span> i <span class="ot">=&gt;</span> (i, i) <span class="ot">-&gt;</span> [e] <span class="ot">-&gt;</span> <span class="dt">Array</span> i e
+<span class="kw">instance</span> <span class="kw">Ix</span> <span class="dt">Int</span>
+<span class="kw">instance</span> (<span class="kw">Ix</span> a, <span class="kw">Ix</span> b) <span class="ot">=&gt;</span> <span class="kw">Ix</span> (a, b)</code></pre>
+<p>Chcemy uogólnić to do tablic wielowymiarowych tak, aby</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">arrFromNestedLists [[<span class="dv">1</span>,<span class="dv">2</span>],[<span class="dv">3</span>,<span class="dv">4</span>]]<span class="ot"> ::</span> <span class="dt">Array</span> (<span class="dt">Int</span>,<span class="dt">Int</span>) <span class="dt">Int</span>
+array ((<span class="dv">0</span>,<span class="dv">0</span>),(<span class="dv">1</span>,<span class="dv">1</span>)) [((<span class="dv">0</span>,<span class="dv">0</span>),<span class="dv">1</span>),((<span class="dv">0</span>,<span class="dv">1</span>),<span class="dv">2</span>),((<span class="dv">1</span>,<span class="dv">0</span>),<span class="dv">3</span>),((<span class="dv">1</span>,<span class="dv">1</span>),<span class="dv">4</span>)]</code></pre>
+<p>w tym celu musimy powiązać typy indeksów z typami list:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> family <span class="dt">ListOfIndex</span> i a
+<span class="kw">type</span> <span class="kw">instance</span> <span class="dt">ListOfIndex</span> <span class="dt">Int</span> a <span class="fu">=</span> [a]
+<span class="kw">type</span> <span class="kw">instance</span> <span class="dt">ListOfIndex</span> (<span class="dt">Int</span>, i) a <span class="fu">=</span> [<span class="dt">ListOfIndex</span> i a]</code></pre>
+</div>
+<div class="section slide level1" id="rodziny-typów-2">
+<h1>Rodziny typów</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE TypeFamilies, FlexibleInstances #-}</span>
-
+<span class="kw">module</span> <span class="dt">ArrFromNested</span> <span class="kw">where</span>
 <span class="kw">import</span> Data.Array
 
 <span class="kw">type</span> family <span class="dt">ListOfIndex</span> i a
-<span class="kw">type</span> <span class="kw">instance</span> <span class="dt">ListOfIndex</span> () a <span class="fu">=</span> a
+<span class="kw">type</span> <span class="kw">instance</span> <span class="dt">ListOfIndex</span> <span class="dt">Int</span> a <span class="fu">=</span> [a]
 <span class="kw">type</span> <span class="kw">instance</span> <span class="dt">ListOfIndex</span> (<span class="dt">Int</span>, i) a <span class="fu">=</span> [<span class="dt">ListOfIndex</span> i a]
 
 <span class="kw">class</span> <span class="kw">Ix</span> i <span class="ot">=&gt;</span> <span class="dt">ArrConv</span> i <span class="kw">where</span>
 <span class="ot">  acArgs ::</span> <span class="dt">ListOfIndex</span> i a <span class="ot">-&gt;</span> ((i, i), [a])
 
-<span class="kw">instance</span> <span class="dt">ArrConv</span> () <span class="kw">where</span>
-  acArgs x <span class="fu">=</span> (((), ()), [x])
-
+<span class="kw">instance</span> <span class="dt">ArrConv</span> <span class="dt">Int</span> <span class="kw">where</span>
+  acArgs xs <span class="fu">=</span> ((<span class="dv">0</span>,<span class="fu">length</span> xs <span class="fu">-</span><span class="dv">1</span>),xs)
+  
 <span class="kw">instance</span> <span class="dt">ArrConv</span> i <span class="ot">=&gt;</span> <span class="dt">ArrConv</span> (<span class="dt">Int</span>, i) <span class="kw">where</span>
   acArgs lst <span class="fu">=</span>
     (((<span class="dv">0</span>, inStart), (<span class="fu">length</span> lst <span class="fu">-</span> <span class="dv">1</span>, inEnd)), args <span class="fu">&gt;&gt;=</span> <span class="fu">snd</span>)
@@ -336,8 +350,7 @@ f b x y <span class="fu">=</span> <span class="kw">if</span> b <span class="kw">
 
 <span class="ot">arrFromNestedLists ::</span> <span class="dt">ArrConv</span> i <span class="ot">=&gt;</span> <span class="dt">ListOfIndex</span> i a <span class="ot">-&gt;</span> <span class="dt">Array</span> i a
 arrFromNestedLists <span class="fu">=</span> <span class="fu">uncurry</span> listArray <span class="fu">.</span> acArgs</code></pre>
-<p>Źródło:</p>
-<p><a href="http://stackoverflow.com/questions/2043610/haskell-type-families-and-dummy-arguments">http://stackoverflow.com/questions/2043610/haskell-type-families-and-dummy-arguments</a></p>
+<p>Źródło: <a href="http://stackoverflow.com/questions/2043610/">http://stackoverflow.com/questions/2043610/</a></p>
 </div>
 <div class="section slide level1" id="typy-skojarzone">
 <h1>Typy skojarzone</h1>
@@ -389,6 +402,30 @@ ins2 x y c <span class="fu">=</span> insert y (insert x c)
 noproblem <span class="fu">=</span> ins2 <span class="ch">&#39;a&#39;</span> <span class="ch">&#39;b&#39;</span> empty
 <span class="co">-- ogólny typ:</span>
 <span class="co">-- noproblem :: (Collection c, Elem c ~ Char) =&gt; c</span></code></pre>
+</div>
+<div class="section slide level1" id="typy-skojarzone-zamiast-zależności-1">
+<h1>Typy skojarzone zamiast zależności</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleInstances #-}</span>
+
+<span class="kw">class</span> (<span class="dt">Elem</span> c <span class="fu">~</span> a) <span class="ot">=&gt;</span> <span class="dt">Collection</span> c a <span class="kw">where</span>
+  <span class="kw">type</span> <span class="dt">Elem</span> c
+<span class="ot">  empty ::</span> c
+<span class="ot">  insert ::</span> a <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> c
+<span class="ot">  member ::</span> a <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+
+<span class="kw">instance</span> <span class="kw">Eq</span> a <span class="ot">=&gt;</span> <span class="dt">Collection</span> [a] a <span class="kw">where</span>
+  <span class="kw">type</span> <span class="dt">Elem</span> [a] <span class="fu">=</span> a
+  empty <span class="fu">=</span> []
+  insert  <span class="fu">=</span> (<span class="fu">:</span>)
+  member <span class="fu">=</span> <span class="fu">elem</span>
+
+<span class="co">-- ins2 :: Collection c a =&gt; a -&gt; a -&gt; c -&gt; c</span>
+ins2 x y c <span class="fu">=</span> insert y (insert x c)
+
+<span class="co">-- tu sygnatura niezbędna</span>
+<span class="co">-- noproblem :: (Collection c Char, Elem c ~ Char) =&gt; c</span>
+<span class="ot">noproblem ::</span> [<span class="dt">Char</span>]
+noproblem <span class="fu">=</span> ins2 <span class="ch">&#39;a&#39;</span> <span class="ch">&#39;b&#39;</span> empty</code></pre>
 </div>
 <div class="section slide level1" id="generalised-algebraic-data-types-gadt">
 <h1>Generalised Algebraic Data Types (GADT)</h1>
@@ -499,7 +536,7 @@ APlus (ALitStr &quot;foo&quot;) (ALitInt 42) :: Exp
 <li>Abstrakcja rodzajowa:</li>
 </ul>
 <p><span class="math">\[{\Gamma(a:k_1)\vdash C : k_2 \quad k_1\to k_2:\Box}\over {\Gamma\vdash \lambda a.C:k_1 \to k_2} \]</span></p>
-<p>czyli znowu podobnie jak &quot;zwykła&quot; abstrakcja. Czy moiglibyśmy to ujednolicić?</p>
+<p>czyli znowu podobnie jak &quot;zwykła&quot; abstrakcja. Czy moglibyśmy to ujednolicić?</p>
 </div>
 <div class="section slide level1" id="systemy-typów-2">
 <h1>Systemy typów (2)</h1>
