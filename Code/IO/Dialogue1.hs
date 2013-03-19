@@ -1,4 +1,4 @@
-module Dialogue where
+module Dialogue1 where
 import qualified System.IO as Sys       
 import System.IO.Error(catchIOError)
 
@@ -36,4 +36,4 @@ runRequest r = runR r `catchIOError` \e -> return (Failure e)
 
 runR (AppendChan h s) = Sys.hPutStr h s >> return Success
 runR (ReadChan h ) = fmap Chr (Sys.hGetChar h)
-runR (ReadFile p) = fmap Str (getContents p)
+runR (ReadFile p) = fmap Str (readFile p)
