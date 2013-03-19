@@ -21,13 +21,44 @@
 
 # Niekontrolowane efekty uboczne
 
-Jak w ML:
+Prawie jak w ML:
 
-~~~~
+~~~~ {.haskell}
 import Impure
 -- igetchar :: () -> Char
 -- iputchar :: Char -> ()
 
+printStr :: String -> [()]
+printStr = map iputchar
+
+main :: IO ()
+main = printStr "Hello\n" `seq` return () 
+
+-- *Impure> iputchar 'x'
+-- x()
+
+-- *Bad1> main
+-- *Bad1> 
+~~~~
+
+# Inaczej
+
+~~~~
+printStr :: String -> ()
+printStr [] = ()
+printStr (c:cs) = let
+ () = iputchar c 
+ () = printStr cs
+ in ()
+
+main = printStr "Hello\n" `seq` return () 
+-- *Bad2> main
+-- *Bad2> 
+~~~~
+
+# Trzeba wymuszac ewaluacje
+
+~~~~
 iprint = case iputchar 'a' of -- wymuszenie ewaluacji
   () -> case igetchar () of
      c -> case iputchar c of
