@@ -78,8 +78,8 @@ main = printStr &quot;Hello\n&quot; `seq` return ()
 -- *Bad2&gt; main
 -- *Bad2&gt; </code></pre>
 </div>
-<div class="section slide level1" id="trzeba-wymuszac-ewaluacje">
-<h1>Trzeba wymuszac ewaluacje</h1>
+<div class="section slide level1" id="trzeba-wymuszać-ewaluacje">
+<h1>Trzeba wymuszać ewaluacje</h1>
 <pre><code>iprint = case iputchar &#39;a&#39; of -- wymuszenie ewaluacji
   () -&gt; case igetchar () of
      c -&gt; case iputchar c of
@@ -92,16 +92,35 @@ main = printStr &quot;Hello\n&quot; `seq` return ()
 <p><code>igetchar/iputchar</code> są zaimplementowane w Code/Impure.hs</p>
 <p>Wykonanie tego ćwiczenia powinno wyjaśnić czemu niekontrolowane efekty uboczne są nierealne w języku leniwym...</p>
 </div>
+<div class="section slide level1" id="impure.hs">
+<h1>Impure.hs</h1>
+<p>Impure trochę oszukuje:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# OPTIONS_GHC -fno-cse -fno-full-laziness #-}</span> 
+<span class="kw">module</span> <span class="dt">Impure</span> <span class="kw">where</span>
+<span class="kw">import</span> System.IO.Unsafe
+<span class="kw">import</span> System.IO
+
+<span class="ot">{-# NOINLINE igetchar #-}</span>
+<span class="ot">igetchar ::</span> () <span class="ot">-&gt;</span> <span class="dt">Char</span>
+igetchar () <span class="fu">=</span> unsafePerformIO <span class="fu">$</span> <span class="kw">do</span>
+  b <span class="ot">&lt;-</span> isEOF
+  <span class="kw">if</span> b <span class="kw">then</span> <span class="fu">return</span> <span class="ch">&#39;\0&#39;</span>  <span class="kw">else</span> <span class="fu">getChar</span>
+
+
+<span class="ot">{-# NOINLINE iputchar #-}</span>
+<span class="ot">iputchar ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> ()
+iputchar c <span class="fu">=</span> unsafePerformIO (<span class="fu">putChar</span> c <span class="fu">&gt;&gt;</span> hFlush stdout)</code></pre>
+</div>
 <div class="section slide level1" id="dygresja---ffi">
 <h1>Dygresja - FFI</h1>
+<p>Ale możemy też naprawdę użyć funkcji z C:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE ForeignFunctionInterface #-}</span>
 <span class="kw">module</span> <span class="dt">CIO</span>(ugetchar,uputchar) <span class="kw">where</span>
-<span class="kw">import</span> Foreign.C -- get the C types
-<span class="kw">import</span> System.IO.Unsafe 
 
 foreign <span class="kw">import</span> ccall &quot;stdio.h getchar&quot; cgetchar :: Int -&gt; Char
 foreign <span class="kw">import</span> ccall &quot;stdio.h putchar&quot; cputchar  :: Char -&gt; ()
 foreign <span class="kw">import</span> ccall &quot;eof.h eof_stdin&quot; ceof :: Int -&gt; Int
+foreign <span class="kw">import</span> ccall &quot;eof.h flush_stdout&quot; cflush :: Int -&gt; ()
 
 <span class="ot">{-# NOINLINE ugetchar #-}</span>
 <span class="ot">ugetchar ::</span> () <span class="ot">-&gt;</span> <span class="dt">Char</span>
@@ -109,7 +128,10 @@ ugetchar () <span class="fu">=</span> <span class="kw">case</span> ceof <span cl
          <span class="dv">0</span> <span class="ot">-&gt;</span> cgetchar <span class="dv">0</span>
          _ <span class="ot">-&gt;</span> <span class="ch">&#39;\0&#39;</span>
 
-uputchar <span class="fu">=</span> cputchar</code></pre>
+<span class="ot">{-# NOINLINE uputchar #-}</span>
+<span class="ot">uputchar ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> ()
+uputchar c <span class="fu">=</span> <span class="kw">case</span> cputchar c <span class="kw">of</span>
+         () <span class="ot">-&gt;</span> cflush <span class="dv">0</span></code></pre>
 </div>
 <div class="section slide level1" id="dialogowe-io">
 <h1>Dialogowe IO</h1>
@@ -160,6 +182,26 @@ cat <span class="fu">~</span>(<span class="dt">Success</span> <span class="fu">:
 </ul>
 <p>Do uruchomienia dialogu służy funkcja <code>runDialogue :: Dialogue a -&gt; IO a</code></p>
 <p>(opcjonalnie) Zaimplementuj dialogowe I/O za pomocą z funkcji z modułu Impure, ewentualnie dopisując dodatkowe &quot;nieczyste&quot; funkcje.</p>
+</div>
+<div class="section slide level1" id="dialogowe-io---obsługa-błędów">
+<h1>Dialogowe I/O - obsługa błędów</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cat3 ::</span> <span class="dt">Dialogue</span>
+cat3 <span class="fu">~</span>(r1 <span class="fu">:</span> <span class="fu">~</span>(r2 <span class="fu">:</span> <span class="fu">~</span>(r3 <span class="fu">:</span> <span class="fu">~</span>(r4 <span class="fu">:</span> _))))
+ <span class="fu">=</span> <span class="dt">AppendChan</span> stdout <span class="st">&quot;enter filename\n&quot;</span> <span class="fu">:</span> <span class="kw">case</span> r1 <span class="kw">of</span>
+     <span class="dt">Success</span> <span class="ot">-&gt;</span> <span class="dt">ReadChan</span> stdin <span class="fu">:</span> <span class="kw">case</span> r2 <span class="kw">of</span> 
+            (<span class="dt">Str</span> userInput) <span class="ot">-&gt;</span> <span class="kw">case</span> <span class="fu">lines</span> userInput <span class="kw">of</span>
+              [] <span class="ot">-&gt;</span> <span class="fu">error</span> <span class="st">&quot;Empty input&quot;</span>
+              (name<span class="fu">:</span>_) <span class="ot">-&gt;</span> [
+               <span class="dt">AppendChan</span> stdout name,
+               <span class="dt">ReadFile</span> name,
+               <span class="dt">AppendChan</span> stdout
+                (<span class="kw">case</span> r4 <span class="kw">of</span>
+               <span class="dt">Str</span> contents <span class="ot">-&gt;</span> contents
+           <span class="dt">Failure</span> ioerr <span class="ot">-&gt;</span> <span class="st">&quot;can’t open file&quot;</span>)
+               ]
+            e2 <span class="ot">-&gt;</span> <span class="fu">error</span>(<span class="fu">show</span> e2)
+     e1 <span class="ot">-&gt;</span> <span class="fu">error</span> (<span class="fu">show</span> e1)
+  <span class="kw">where</span> <span class="fu">error</span> s <span class="fu">=</span> [<span class="dt">AppendChan</span> stderr (s<span class="fu">++</span><span class="st">&quot;\n&quot;</span>)]</code></pre>
 </div>
 <div class="section slide level1" id="kontynuacyjne-io">
 <h1>Kontynuacyjne I/O</h1>

@@ -56,7 +56,7 @@ main = printStr "Hello\n" `seq` return ()
 -- *Bad2> 
 ~~~~
 
-# Trzeba wymuszac ewaluacje
+# Trzeba wymuszać ewaluacje
 
 ~~~~
 iprint = case iputchar 'a' of -- wymuszenie ewaluacji
@@ -75,16 +75,40 @@ iprint = case iputchar 'a' of -- wymuszenie ewaluacji
 Wykonanie tego ćwiczenia powinno wyjaśnić czemu niekontrolowane efekty
 uboczne są nierealne w języku leniwym...
 
+# Impure.hs
+
+Impure trochę oszukuje:
+
+~~~~ {.haskell}
+{-# OPTIONS_GHC -fno-cse -fno-full-laziness #-} 
+module Impure where
+import System.IO.Unsafe
+import System.IO
+
+{-# NOINLINE igetchar #-}
+igetchar :: () -> Char
+igetchar () = unsafePerformIO $ do
+  b <- isEOF
+  if b then return '\0'  else getChar
+
+
+{-# NOINLINE iputchar #-}
+iputchar :: Char -> ()
+iputchar c = unsafePerformIO (putChar c >> hFlush stdout)
+~~~~
+
 # Dygresja - FFI
+
+Ale możemy też naprawdę użyć funkcji z C:
+
 ~~~~ {.haskell}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module CIO(ugetchar,uputchar) where
-import Foreign.C -- get the C types
-import System.IO.Unsafe 
 
 foreign import ccall "stdio.h getchar" cgetchar :: Int -> Char
 foreign import ccall "stdio.h putchar" cputchar  :: Char -> ()
 foreign import ccall "eof.h eof_stdin" ceof :: Int -> Int
+foreign import ccall "eof.h flush_stdout" cflush :: Int -> ()
 
 {-# NOINLINE ugetchar #-}
 ugetchar :: () -> Char
@@ -92,7 +116,10 @@ ugetchar () = case ceof 0 of
          0 -> cgetchar 0
          _ -> '\0'
 
-uputchar = cputchar
+{-# NOINLINE uputchar #-}
+uputchar :: Char -> ()
+uputchar c = case cputchar c of
+         () -> cflush 0
 ~~~~
 
 # Dialogowe IO
