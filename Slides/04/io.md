@@ -2,22 +2,11 @@
 
 * Niekontrolowane efekty uboczne (C, Lisp, ML) - nie nadaje się do użycia w języku leniwym
 
-* strumienie (Landin, Henderson)- program jest funkcją String → String
-- głównie dla języków leniwych
+* Strumienie (Landin, Henderson)- program jest funkcją String → String
 
-* strumienie synchronizowane (dialogue I/O)
+* Strumienie synchronizowane (dialogue I/O)
 
-    system operacyjny możemy traktowac jako funkcję
-
-    ~~~~
-	[Request] -> [Response]
-    ~~~~
-
-    a program 
-
-    ~~~~
-	[Response] -> [Request]
-    ~~~~
+* Monady
 
 # Niekontrolowane efekty uboczne
 
@@ -120,6 +109,29 @@ ugetchar () = case ceof 0 of
 uputchar :: Char -> ()
 uputchar c = case cputchar c of
          () -> cflush 0
+~~~~
+
+# Strumienie
+
+Program w języku leniwym możemy traktować jako transformator strumieni
+
+~~~~ {.haskell}
+mainS :: [Char] -> [Char]
+~~~~
+
+strumień jest leniwą lista znaków
+
+Ale co jeśli chcemy operować na czymś więcej niż stdin/stdout?
+system operacyjny możemy traktowac jako funkcję
+
+~~~~ {.haskell}
+    [Request] -> [Response]
+~~~~
+
+a program 
+
+~~~~{.haskell}
+    [Response] -> [Request]
 ~~~~
 
 # Dialogowe IO

@@ -30,13 +30,9 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <h1 id="wejście-wyjście-w-językach-funkcyjnych">Wejście-wyjście w językach funkcyjnych</h1>
 <ul>
 <li><p>Niekontrolowane efekty uboczne (C, Lisp, ML) - nie nadaje się do użycia w języku leniwym</p></li>
-<li>strumienie (Landin, Henderson)- program jest funkcją String → String</li>
-<li><p>głównie dla języków leniwych</p></li>
-<li><p>strumienie synchronizowane (dialogue I/O)</p>
-<p>system operacyjny możemy traktowac jako funkcję</p>
-<pre><code>[Request] -&gt; [Response]</code></pre>
-<p>a program</p>
-<pre><code>[Response] -&gt; [Request]</code></pre></li>
+<li><p>Strumienie (Landin, Henderson)- program jest funkcją String → String</p></li>
+<li><p>Strumienie synchronizowane (dialogue I/O)</p></li>
+<li><p>Monady</p></li>
 </ul>
 <h1 id="niekontrolowane-efekty-uboczne">Niekontrolowane efekty uboczne</h1>
 <p>Prawie jak w ML:</p>
@@ -115,6 +111,14 @@ ugetchar () <span class="fu">=</span> <span class="kw">case</span> ceof <span cl
 <span class="ot">uputchar ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> ()
 uputchar c <span class="fu">=</span> <span class="kw">case</span> cputchar c <span class="kw">of</span>
          () <span class="ot">-&gt;</span> cflush <span class="dv">0</span></code></pre>
+<h1 id="strumienie">Strumienie</h1>
+<p>Program w języku leniwym możemy traktować jako transformator strumieni</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">mainS ::</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]</code></pre>
+<p>strumień jest leniwą lista znaków</p>
+<p>Ale co jeśli chcemy operować na czymś więcej niż stdin/stdout? system operacyjny możemy traktowac jako funkcję</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">    [<span class="dt">Request</span>] <span class="ot">-&gt;</span> [<span class="dt">Response</span>]</code></pre>
+<p>a program</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">    [<span class="dt">Response</span>] <span class="ot">-&gt;</span> [<span class="dt">Request</span>]</code></pre>
 <h1 id="dialogowe-io">Dialogowe IO</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Dialogue</span> <span class="fu">=</span> [<span class="dt">Response</span>] <span class="ot">-&gt;</span> [<span class="dt">Request</span>]
 
