@@ -1,4 +1,4 @@
-SUBDIRS:=`seq --format="%02.f" -s " " 1 4` 
+SUBDIRS:=`seq -f "%02.f" -s " " 1 4` 
 #SHELL:=/bin/bash
 
 all: subdirs
