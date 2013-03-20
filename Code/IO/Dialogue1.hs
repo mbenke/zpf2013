@@ -25,6 +25,7 @@ data Request
 type Chan = Sys.Handle
 stdin = Sys.stdin
 stdout = Sys.stdout
+stderr  = Sys.stderr
 
 type Path = String
 

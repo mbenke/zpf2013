@@ -139,6 +139,7 @@ cat ~(Success : ~((Str userInput) : ~(Success : ~(r4 : _))))
 * Trzeba dbać o kolejność wyliczania
 * Problematyczna modularność (jak zbudować dialog z mniejszych dialogów?)
 
+
 # Dialogowe I/O - ćwiczenia
 
 Moduł Code/Dialogue2.hs implementuje dialogowe IO. Używając go
@@ -150,6 +151,27 @@ Do uruchomienia dialogu służy funkcja `runDialogue :: Dialogue a -> IO a`
 
 (opcjonalnie) Zaimplementuj dialogowe I/O za pomocą z funkcji z modułu Impure, ewentualnie dopisując dodatkowe "nieczyste" funkcje.
 
+# Dialogowe I/O - obsługa błędów
+
+~~~~ {.haskell}
+cat3 :: Dialogue
+cat3 ~(r1 : ~(r2 : ~(r3 : ~(r4 : _))))
+ = AppendChan stdout "enter filename\n" : case r1 of
+     Success -> ReadChan stdin : case r2 of 
+            (Str userInput) -> case lines userInput of
+              [] -> error "Empty input"
+              (name:_) -> [
+               AppendChan stdout name,
+               ReadFile name,
+               AppendChan stdout
+                (case r4 of
+	    	   Str contents -> contents
+		   Failure ioerr -> "can’t open file")
+               ]
+            e2 -> error(show e2)
+     e1 -> error (show e1)
+  where error s = [AppendChan stderr (s++"\n")]
+~~~~
 
 # Kontynuacyjne I/O
 
