@@ -35,6 +35,10 @@ Elementami typu `M a` są obliczenia dające wynik typu `a`
 
 Każda monada jest/powinna być funktorem. To, że Functor nie jest nadklasą Monad jest li tylko zaszłością.
 
+~~~~ {.haskell}
+fmap f m = m >>= return . f
+~~~~
+
 # Prawa monadyki
 Każda monada musi spełniać następujące prawa:
 
@@ -64,6 +68,8 @@ f >=> g     = \x -> (f x >>= g)
 2. f >=> return     = f
 3. (f >=> g) >=> h  = f >=> (g >=> h)
 ~~~~
+
+Kategoria Kleisliego: morfizmami z A do B są funkcje $A \to m\; B$
 
 # Inna prezentacja monad
 
@@ -121,13 +127,15 @@ instance Monad W where
   (W x) >>= f = f x
 ~~~~
 
-**Ćwiczenia**
+# Ćwiczenia
 
-~~~~
-g :: Int -> W Int -> W Int  -- g x (W y) = W (x+y), ale bez rozpakowywania
+~~~~ {.haskell}
+g :: Int -> W Int -> W Int  
+-- g x (W y) = W (x+y), ale bez rozpakowywania
 g x wy = undefined
 
-h :: W Int -> W Int -> W Int --h (W x) (W y) = W (x+y), bez rozpakowywania
+h :: W Int -> W Int -> W Int 
+--h (W x) (W y) = W (x+y), bez rozpakowywania
 h wx wy = undefined
 
 -- Udowodnij, że W spełnia prawa monadyki
@@ -136,8 +144,30 @@ join :: W (W a) -> W a -- bez rozpakowywania, tylko return i bind
 join wwa = undefined
 ~~~~
 
-# Funktory par
+# Monada wolna
 
+Dla każdego funktora możemy zdefiniować monadę:
+
+~~~~ {.haskell}
+data Free f a = Pure a | In (f (Free f a))
+
+instance Functor f => Functor (Free f) where
+   fmap f (Pure a) = Pure (f a)
+   fmap f (In as) = In (fmap (fmap f) as)
+ 
+instance Functor f => Monad (Free f) where
+   return = Pure
+   Pure a >>= f = f a -- pierwsze prawo
+   In  as >>= f = In (fmap (>>= f) as)
+~~~~
+
+W literaturze `In` nazywa się też `Free`:
+
+~~~~
+data Free f a = Pure a | Free (f (Free f a))
+~~~~
+
+# Funktory par
 
 ~~~~ {.haskell}
 -- Dla dowolnego c operacja \ a -> (a,c) jest funktorem:
