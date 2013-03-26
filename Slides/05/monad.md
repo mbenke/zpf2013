@@ -163,7 +163,7 @@ instance Functor f => Monad (Free f) where
 
 W literaturze `In` nazywa się też `Free`:
 
-~~~~
+~~~~ {.haskell}
 data Free f a = Pure a | Free (f (Free f a))
 ~~~~
 
@@ -191,6 +191,13 @@ p1 :: Monoid c => a -> (a,c)
 p1 a = (a,mempty)
 ~~~~
 
+# Monada stanu
+
+~~~~ {.haskell}
+type SM a = S -> (a,S)
+pure = (,)
+join = (uncurry ($) .) 
+~~~~
 
 
 # Monada stanu
@@ -205,8 +212,8 @@ smap :: (a->b) -> (SM a -> SM b)
 smap f t = first f . t -- \s -> first f (t s)
 
 spure :: a -> SM a
-spure a s = (a, s)
--- spure = (,)
+-- spure a s = (a, s)
+spure = (,)
 
 sbind :: SM a -> (a -> SM b) -> SM b
 sbind f k = \s -> let (a,s') = f s in k a s'
@@ -219,7 +226,8 @@ sjoin mma = \s -> let (ma,s') = mma s in ma s'
 sjoin' :: SM (SM a) -> SM a
 -- sjoin' mma = \s -> let (ma, s') = mma s in ma s'
 -- sjoin' mma = \s -> uncurry ($) (mma s)
-sjoin' mma = uncurry ($) . mma
+-- sjoin' mma = uncurry ($) . mma
+sjoin' = (uncurry ($) .) 
 ~~~~
 
 # Monada State

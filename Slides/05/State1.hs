@@ -42,4 +42,5 @@ sjoin mma = \s -> let (ma,s') = mma s in ma s'
 -- uncurry ($) :: (b -> c, b) -> c
 sjoin' :: SM (SM a) -> SM a
 -- sjoin' mma = \s -> uncurry ($) (mma s)
-sjoin' mma = uncurry ($) . mma
+-- sjoin' mma = uncurry ($) . mma
+sjoin' = (uncurry ($) .) 
