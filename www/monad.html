@@ -25,6 +25,7 @@ code > span.al { color: #ff0000; font-weight: bold; }
 code > span.fu { color: #06287e; }
 code > span.er { color: #ff0000; font-weight: bold; }
   </style>
+  <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 </head>
 <body>
 <h1 id="funktory">Funktory</h1>
@@ -44,6 +45,7 @@ fmap (f . g) = fmap f . fmap g</code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">readChan stdin <span class="fu">&gt;&gt;=</span>   (\userInput <span class="ot">-&gt;</span> <span class="fu">...</span> )</code></pre></li>
 </ul>
 <p>Każda monada jest/powinna być funktorem. To, że Functor nie jest nadklasą Monad jest li tylko zaszłością.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">fmap</span> f m <span class="fu">=</span> m <span class="fu">&gt;&gt;=</span> <span class="fu">return</span> <span class="fu">.</span> f</code></pre>
 <h1 id="prawa-monadyki">Prawa monadyki</h1>
 <p>Każda monada musi spełniać następujące prawa:</p>
 <pre><code>   1. (return x) &gt;&gt;= k == k x
@@ -60,6 +62,7 @@ f &gt;=&gt; g     = \x -&gt; (f x &gt;&gt;= g)
 1. return &gt;=&gt; g     = g
 2. f &gt;=&gt; return     = f
 3. (f &gt;=&gt; g) &gt;=&gt; h  = f &gt;=&gt; (g &gt;=&gt; h)</code></pre>
+<p>Kategoria Kleisliego: morfizmami z A do B są funkcje <span class="math">\(A \to m\; B\)</span></p>
 <h1 id="inna-prezentacja-monad">Inna prezentacja monad</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Monad&#39;</span> m <span class="kw">where</span>
 <span class="ot">   pure  ::</span>  a <span class="ot">-&gt;</span> m a
@@ -103,17 +106,33 @@ c <span class="fu">=</span> bind f (f <span class="dv">1</span>)
 <span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">W</span> <span class="kw">where</span>
   <span class="fu">return</span> <span class="fu">=</span> <span class="dt">W</span>
   (<span class="dt">W</span> x) <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> f x</code></pre>
-<p><strong>Ćwiczenia</strong></p>
-<pre><code>g :: Int -&gt; W Int -&gt; W Int  -- g x (W y) = W (x+y), ale bez rozpakowywania
-g x wy = undefined
+<h1 id="ćwiczenia">Ćwiczenia</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">g ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">W</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">W</span> <span class="dt">Int</span>  
+<span class="co">-- g x (W y) = W (x+y), ale bez rozpakowywania</span>
+g x wy <span class="fu">=</span> <span class="fu">undefined</span>
 
-h :: W Int -&gt; W Int -&gt; W Int --h (W x) (W y) = W (x+y), bez rozpakowywania
-h wx wy = undefined
+<span class="ot">h ::</span> <span class="dt">W</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">W</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">W</span> <span class="dt">Int</span> 
+<span class="co">--h (W x) (W y) = W (x+y), bez rozpakowywania</span>
+h wx wy <span class="fu">=</span> <span class="fu">undefined</span>
 
--- Udowodnij, że W spełnia prawa monadyki
+<span class="co">-- Udowodnij, że W spełnia prawa monadyki</span>
 
-join :: W (W a) -&gt; W a -- bez rozpakowywania, tylko return i bind
-join wwa = undefined</code></pre>
+<span class="ot">join ::</span> <span class="dt">W</span> (<span class="dt">W</span> a) <span class="ot">-&gt;</span> <span class="dt">W</span> a <span class="co">-- bez rozpakowywania, tylko return i bind</span>
+join wwa <span class="fu">=</span> <span class="fu">undefined</span></code></pre>
+<h1 id="monada-wolna">Monada wolna</h1>
+<p>Dla każdego funktora możemy zdefiniować monadę:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Free</span> f a <span class="fu">=</span> <span class="dt">Pure</span> a <span class="fu">|</span> <span class="dt">In</span> (f (<span class="dt">Free</span> f a))
+
+<span class="kw">instance</span> <span class="kw">Functor</span> f <span class="ot">=&gt;</span> <span class="kw">Functor</span> (<span class="dt">Free</span> f) <span class="kw">where</span>
+   <span class="fu">fmap</span> f (<span class="dt">Pure</span> a) <span class="fu">=</span> <span class="dt">Pure</span> (f a)
+   <span class="fu">fmap</span> f (<span class="dt">In</span> as) <span class="fu">=</span> <span class="dt">In</span> (<span class="fu">fmap</span> (<span class="fu">fmap</span> f) as)
+ 
+<span class="kw">instance</span> <span class="kw">Functor</span> f <span class="ot">=&gt;</span> <span class="kw">Monad</span> (<span class="dt">Free</span> f) <span class="kw">where</span>
+   <span class="fu">return</span> <span class="fu">=</span> <span class="dt">Pure</span>
+   <span class="dt">Pure</span> a <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> f a <span class="co">-- pierwsze prawo</span>
+   <span class="dt">In</span>  as <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">In</span> (<span class="fu">fmap</span> (<span class="fu">&gt;&gt;=</span> f) as)</code></pre>
+<p>W literaturze <code>In</code> nazywa się też <code>Free</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Free</span> f a <span class="fu">=</span> <span class="dt">Pure</span> a <span class="fu">|</span> <span class="dt">Free</span> (f (<span class="dt">Free</span> f a))</code></pre>
 <h1 id="funktory-par">Funktory par</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Dla dowolnego c operacja \ a -&gt; (a,c) jest funktorem:</span>
 <span class="ot">first ::</span> (a<span class="ot">-&gt;</span>b) <span class="ot">-&gt;</span> (a,c) <span class="ot">-&gt;</span> (b,c)
@@ -131,6 +150,10 @@ f <span class="fu">&amp;&amp;&amp;</span> g <span class="fu">=</span> \a <span c
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">p1 ::</span> <span class="dt">Monoid</span> c <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> (a,c)
 p1 a <span class="fu">=</span> (a,mempty)</code></pre>
 <h1 id="monada-stanu">Monada stanu</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">SM</span> a <span class="fu">=</span> <span class="dt">S</span> <span class="ot">-&gt;</span> (a,<span class="dt">S</span>)
+pure <span class="fu">=</span> (,)
+join <span class="fu">=</span> (<span class="fu">uncurry</span> (<span class="fu">$</span>) <span class="fu">.</span>) </code></pre>
+<h1 id="monada-stanu-1">Monada stanu</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">S</span> <span class="fu">=</span> <span class="dt">Int</span>  <span class="co">-- przykładowo</span>
 <span class="kw">type</span> <span class="dt">SM</span> a <span class="fu">=</span> <span class="dt">S</span> <span class="ot">-&gt;</span> (a,<span class="dt">S</span>)
 
@@ -139,8 +162,8 @@ p1 a <span class="fu">=</span> (a,mempty)</code></pre>
 smap f t <span class="fu">=</span> first f <span class="fu">.</span> t <span class="co">-- \s -&gt; first f (t s)</span>
 
 <span class="ot">spure ::</span> a <span class="ot">-&gt;</span> <span class="dt">SM</span> a
-spure a s <span class="fu">=</span> (a, s)
-<span class="co">-- spure = (,)</span>
+<span class="co">-- spure a s = (a, s)</span>
+spure <span class="fu">=</span> (,)
 
 <span class="ot">sbind ::</span> <span class="dt">SM</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">SM</span> b) <span class="ot">-&gt;</span> <span class="dt">SM</span> b
 sbind f k <span class="fu">=</span> \s <span class="ot">-&gt;</span> <span class="kw">let</span> (a,s&#39;) <span class="fu">=</span> f s <span class="kw">in</span> k a s&#39;
@@ -153,7 +176,8 @@ sjoin mma <span class="fu">=</span> \s <span class="ot">-&gt;</span> <span class
 <span class="ot">sjoin&#39; ::</span> <span class="dt">SM</span> (<span class="dt">SM</span> a) <span class="ot">-&gt;</span> <span class="dt">SM</span> a
 <span class="co">-- sjoin&#39; mma = \s -&gt; let (ma, s&#39;) = mma s in ma s&#39;</span>
 <span class="co">-- sjoin&#39; mma = \s -&gt; uncurry ($) (mma s)</span>
-sjoin&#39; mma <span class="fu">=</span> <span class="fu">uncurry</span> (<span class="fu">$</span>) <span class="fu">.</span> mma</code></pre>
+<span class="co">-- sjoin&#39; mma = uncurry ($) . mma</span>
+sjoin&#39; <span class="fu">=</span> (<span class="fu">uncurry</span> (<span class="fu">$</span>) <span class="fu">.</span>) </code></pre>
 <h1 id="monada-state">Monada State</h1>
 <p>Jesli chcemy zrobić porządną instancję <code>Monad</code> musimy opakować to wszystko w newtype:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">State</span> s a <span class="fu">=</span> <span class="dt">State</span> {<span class="ot"> runState ::</span> s <span class="ot">-&gt;</span> (a, s) }
@@ -321,7 +345,7 @@ ex8 <span class="fu">=</span> <span class="kw">do</span>
   <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b
 
 test8 <span class="fu">=</span> runCont ex8 <span class="fu">return</span></code></pre>
-<h1 id="monada-stanu-1">Monada stanu</h1>
+<h1 id="monada-stanu-2">Monada stanu</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">S</span> <span class="fu">=</span> <span class="dt">Int</span>  <span class="co">-- przykładowo</span>
 <span class="kw">type</span> <span class="dt">SM</span> a <span class="fu">=</span> <span class="dt">S</span> <span class="ot">-&gt;</span> (a,<span class="dt">S</span>)
 
