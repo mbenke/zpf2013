@@ -339,6 +339,10 @@ wheree = (.) -- m `wheree` t
 type E = Name -> Int
 type Name = String
 
+ext :: Name -> Int -> E -> E
+ext n1 v e n2 | n1 == n2  = v 
+              | otherwise = e n2
+
 data Exp = EC Int 
          | EV Name
          | Exp :+ Exp  

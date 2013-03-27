@@ -28,7 +28,9 @@ spure a s = (a, s)
 -- spure = (,)
 
 sbind :: SM a -> (a -> SM b) -> SM b
-sbind f k = \s -> let (a,s') = f s in k a s'
+--sbind f k = \s -> let (a,s') = f s in k a s'
+sbind = flip  sbind'
+sbind' k = (uncurry k .) 
 
 -- sbind' :: a -> SM b -> SM a -> SM b
 
