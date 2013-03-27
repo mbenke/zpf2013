@@ -5,6 +5,8 @@ test: TestReg Smallcheck
 	./TestReg
 	./Smallcheck
 
+all: $(BINFILES) zadanie.pdf
+
 TestReg: TestReg.hs Reg.hs RegExtra.hs Mon.hs
 	ghc -O2 --make $@
 
