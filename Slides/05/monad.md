@@ -74,11 +74,12 @@ Kategoria Kleisliego: morfizmami z A do B są funkcje $A \to m\; B$
 # Inna prezentacja monad
 
 ~~~~ {.haskell}
-class Functor m => Monad' m where
+class Functor m => Pointed m where
    pure  ::  a -> m a
 -- fmap  :: (a -> b) -> m a -> m b
 -- fmap g . pure === pure . g
 
+class Functor m => Monad' m where
   join :: m (m a) -> m a
 -- join . fmap pure === id === join . pure
 -- join . fmap join === join . join
@@ -96,9 +97,6 @@ instance Functor W where
   -- fmap :: (a -> b) -> W a -> W b
   fmap f (W a) = W (f a)
 
-class Pointed f where
-  pure :: a -> f a
-  
 instance Pointed W where
   pure = W
   
