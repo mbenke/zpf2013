@@ -144,28 +144,6 @@ join :: W (W a) -> W a -- bez rozpakowywania, tylko return i bind
 join wwa = undefined
 ~~~~
 
-# Monada wolna
-
-Dla każdego funktora możemy zdefiniować monadę:
-
-~~~~ {.haskell}
-data Free f a = Pure a | In (f (Free f a))
-
-instance Functor f => Functor (Free f) where
-   fmap f (Pure a) = Pure (f a)
-   fmap f (In as) = In (fmap (fmap f) as)
- 
-instance Functor f => Monad (Free f) where
-   return = Pure
-   Pure a >>= f = f a -- pierwsze prawo
-   In  as >>= f = In (fmap (>>= f) as)
-~~~~
-
-W literaturze `In` nazywa się też `Free`:
-
-~~~~ {.haskell}
-data Free f a = Pure a | Free (f (Free f a))
-~~~~
 
 # Funktory par
 
@@ -988,6 +966,75 @@ fromCEM :: CEM e r a -> CE e a r
 instance Monad (CEM e r) where ...  
 instance (Error e) => MonadError e (CEM e r) where...
 ~~~~ 
+
+# Monada wolna
+
+Dla każdego funktora możemy zdefiniować monadę:
+
+~~~~ {.haskell}
+data Free f a = Pure a | In (f (Free f a))
+
+instance Functor f => Functor (Free f) where
+   fmap f (Pure a) = Pure (f a)
+   fmap f (In as) = In (fmap (fmap f) as)
+ 
+instance Functor f => Monad (Free f) where
+   return = Pure
+   Pure a >>= f = f a -- pierwsze prawo
+   In  as >>= f = In (fmap (>>= f) as)
+~~~~
+
+W literaturze `In` nazywa się też `Free`:
+
+~~~~ {.haskell}
+data Free f a = Pure a | Free (f (Free f a))
+~~~~
+
+# Przykład
+
+~~~~ {.haskell}
+import Control.Monad.Free
+import System.Exit hiding (ExitSuccess)
+
+data TeletypeF x
+  = PutStrLn String x
+  | GetLine (String -> x)
+  | ExitSuccess
+
+instance Functor TeletypeF where
+    fmap f (PutStrLn str x) = PutStrLn str (f x)
+    fmap f (GetLine      k) = GetLine (f . k)
+    fmap f  ExitSuccess     = ExitSuccess
+~~~~
+
+# Przykład c.d.
+
+~~~~ {.haskell}
+type Teletype = Free TeletypeF
+
+putStrLn' :: String -> Teletype ()
+putStrLn' str = liftF $ PutStrLn str ()
+
+getLine' :: Teletype String
+getLine' = liftF $ GetLine id
+
+exitSuccess' :: Teletype r
+exitSuccess' = liftF ExitSuccess
+
+run :: Teletype r -> IO r
+run (Pure r) = return r
+run (Free (PutStrLn str t)) = putStrLn str >>  run t
+run (Free (GetLine  f    )) = getLine      >>= run . f
+run (Free  ExitSuccess    ) = exitSuccess
+
+echo :: Teletype ()
+echo = do str <- getLine'
+          putStrLn' str
+          exitSuccess'
+          putStrLn' "Finished"
+
+main = run echo
+~~~~
 
 # Bonus: trochę teorii kategorii
 
