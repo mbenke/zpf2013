@@ -316,276 +316,43 @@ rjoin :: RM (RM e) -> RM e
 rjoin mm e = mm e e
 ~~~~
 
-# Monada kontynuacji
+# Czytelnik 2
 
 ~~~~ {.haskell}
-type Cont r a = (a -> r) -> r
--- Związek z logiką:  Cont a ∼ (a → ⊥) → ⊥ = ¬¬a
+ask :: RM E -- E -> E 
+ask = id
 
-contra :: (a->b) -> (b->r) -> (a->r)
-contra f g = g . f
+asks :: (E -> a) -> RM a
+-- (E -> a) -> E -> a 
+asks = id
 
-cmap :: (a -> b) -> Cont r a -> Cont r b
---   :: (a -> b) -> ((a -> r) -> r) ->  (b -> r) -> r
-cmap f m = \c -> m $ c . f -- \c -> m (contra f c)
+local :: (E -> E) -> RM a -> RM a
+-- (E -> E) -> (E -> a) -> E -> a
+-- local t m e = m (t e)
+local = flip (.)
 
-cpure :: a -> Cont r a
-cpure = flip ($) -- \a c -> c a
-
-cbind :: Cont r a -> (a -> Cont r b) -> Cont r b
--- ((a->r)->r)) -> (a -> (b->r)->r)
-cbind m k = \c -> m (\a -> k a c)
+wheree :: RM a -> (E -> E) -> RM a
+wheree = (.) -- m `wheree` t
 ~~~~
 
-Jak zwykle w bibliotece jest to zapakowane w newtype, ale mamy funkcje
-
+# Czytelnik (3)
 
 ~~~~ {.haskell}
-cont :: ((a->r)->r) -> Cont r a
-runCont :: Cont r a -> (a->r)->r
+type E = Name -> Int
+type Name = String
+
+data Exp = EC Int 
+         | EV Name
+         | Exp :+ Exp  
+         | ELet Name Exp Exp
+
+eval :: Exp -> RM Int
+eval (EC i) = return i
+eval (EV n) = asks ($n)
+eval (e1 :+ e2) = liftR (+) (eval e1) (eval e2)
+eval (ELet n e1 e2) = eval e1 `rbind` wheree (eval e2) . ext n 
 ~~~~
 
-
-# Kontynuacje
-
-~~~~ {.haskell}
-import Control.Monad.Cont
-
-ex1 :: Cont r Int
-ex1 = do
-  a <- return 1
-  b <- return 10
-  return (a+b)
-  
--- test :: (forall r. (Show r) => Cont r Int) -> String 
-test ex = runCont ex show
-~~~~
-
-~~~~
-> test ex1
-"11"
-~~~~
-
-~~~~ {.haskell}
--- cont :: ((a->r)->r) -> Cont r a
-ex2 :: Cont r Int
-ex2 = do
-  a <- return 1
-  b <- cont (\c -> c 10)
-  return (a+b)
-~~~~
-
-~~~~
-> test ex2
-"11"
-~~~~
-
-# Brak wyniku - wyjątki
-
-~~~~ {.haskell}
-ex3 = do
-   a <- return 1
-   b <- cont (\c -> "escape")
-   return $ a+b
-~~~~
-
-~~~~
-> test ex3
-"escape"
-~~~~
-
-...czyli mamy wyjątki
-
-
-~~~~ {.haskell}
-escape :: r -> Cont r a
-escape r = cont (const r)
-~~~~
-
-~~~~ {.haskell}
-ex3e = do
-   a <- return 1
-   b <- escape "escape"
-   return $ a+b
-~~~~
-
-
-# Wiele wyników
-
-~~~~ {.haskell}
-ex4 = do
-   a <- return 1
-   b <- cont (\c -> c 10 ++ c 20)
-   return $ a+b
-~~~~
-
-~~~~
-> test ex4
-"1121"
-~~~~
-
-Hmm, to prawie jak monada list:
-
-~~~~ {.haskell}
-test5 = do 
-  a <- return 1
-  b <- [10, 20]
-  return $ a+b   
-~~~~
-
-~~~~
-> test5
-[11,21]
-~~~~
-
-# Wiele wyników (2)
-
-~~~~ {.haskell}
-ex6 = do
-  a <- return 1
-  b <- Cont (\c -> c 10 ++ c 20)
-  return $ a+b
-
-test6 = runCont ex6 (\x -> [x])
-~~~~
-
-~~~~
-> test6
-[11,21]
-~~~~
-
-Albo inaczej:
-
-
-~~~~ {.haskell}
-ex7 = do
-   a <- return 1
-   b <- cont (\c -> concat [c 10, c 20])
-   return $ a+b
-
-test7 = runCont ex7 (\x -> [x])
-
-ex8 = do
-  a <- return 1
-  b <- cont (\c -> [10,20] >>= c)
-  return $ a+b
-
-test8 = runCont ex8 return
-~~~~
-
-# Monada stanu
-
-~~~~ {.haskell}
-type S = Int  -- przykładowo
-type SM a = S -> (a,S)
-
--- Nie można napisać instance Functor SM ...
-smap :: (a->b) -> (SM a -> SM b)
-smap f t = first f . t -- \s -> ffirst f (t s)
-
-spure :: a -> SM a
-spure a s = (a, s)
--- spure = (,)
-
-sbind :: SM a -> (a -> SM b) -> SM b
-sbind f k = \s -> let (a,s') = f s in k a s'
-
-sjoin :: SM (SM a) -> SM a
--- sjoin :: (S -> (S -> (a,S),S)) -> S -> (a,S)
-sjoin mma = \s -> let (ma,s') = mma s in ma s'
-
-
--- uncurry ($) :: (b -> c, b) -> c
-sjoin' :: SM (SM a) -> SM a
--- sjoin' mma = \s -> let (ma, s') = mma s in ma s'
--- sjoin' mma = \s -> uncurry ($) (mma s)
-sjoin' mma = uncurry ($) . mma
-~~~~
-
-# Monada State
-
-Jesli chcemy zrobić porządną instancję `Monad` musimy opakować to wszystko w newtype:
-
-
-~~~~ {.haskell}
-newtype State s a = State { runState :: s -> (a, s) }
-
-instance Functor (State s) where
-    fmap f m = State $ \s -> let
-        (a, s') = runState m s
-        in (f a, s')
-
-instance Monad (State s) where
-    return a = State $ \s -> (a, s)
-    m >>= k  = State $ \s -> let
-        (a, s') = runState m s
-        in runState (k a) s'
-~~~~
-
-# Stan a lenistwo
-
-Możemy zapisać instancje Functor i Monad trochę inaczej:
-
-~~~~ {.haskell}
-instance Functor (State s) where
-    fmap f m = State $ \s -> case runState m s of
-                                 (a, s') -> (f a, s')
-instance Monad (State s) where
-    return a = State $ \s -> (a, s)
-    m >>= k  = State $ \s -> case runState m s of
-                                 (a, s') -> runState (k a) s'
-
-~~~~
-
-Jaka jest różnica?
-
-# Control.Monad.State.Lazy
-
-~~~~ {.haskell}
-import Debug.Trace
-
-f = \s ->
-        let (x, s')  = doSomething s
-            (y, s'') = doSomethingElse s'
-        in (3, s'')
-
-doSomething s = trace "doSomething" $ (0, s)
-doSomethingElse s = trace "doSomethingElse" $ (3, s)
-
-main = print (f 2)
-~~~~
-
-~~~~
-$ runhaskell LazyTest.hs
-doSomethingElse
-doSomething
-(3,2)
-~~~~
-
-# Control.Monad.State.Strict
-
-~~~~ {.haskell}
-import Debug.Trace
-
-f = \s ->
-        let (x, s')  = doSomething s
-            (y, s'') = doSomethingElse s'
-        in (3, s'')
-
-doSomething s = trace "doSomething" $ (0, s)
-doSomethingElse s = trace "doSomethingElse" $ (3, s)
-
-main = print (f 2)
-~~~~
-
-~~~~
-ben@sowa:~/Zajecia/Zpf/Slides/7$ runhaskell StrictTest.hs
-doSomething
-doSomethingElse
-(3,2)
-~~~~
-
-Zwykle kolejność obliczeń jest nam obojętna, ale np. w wypadku IO...
 
 # Continuation Passing Style (CPS)
 
