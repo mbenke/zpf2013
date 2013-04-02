@@ -4,7 +4,7 @@ import Data.Char(isSpace)
 runCountSpaces fileName = print =<< run =<< enum_file fileName countSpaces
 
 runCountManySpaces fileNames =
-  print =<< run =<< foldr (>>>) enum_eof (map enum_file fileNames) countSpaces
+  print =<< run =<< foldr (>>>) return (map enum_file fileNames) countSpaces
 
 main = runCountSpaces "Makefile"
 

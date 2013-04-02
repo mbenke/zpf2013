@@ -165,5 +165,5 @@ countSpaces :: Monad m => Iteratee Char m Int
 countSpaces = id .| (en_filter isSpace) count_i
 
 runCountManySpaces fileNames =
-  print =<< run =<< foldr1 (>>>) (map enum_file fileNames) countSpaces
+  print =<< run =<< foldr (>>>) return (map enum_file fileNames) countSpaces
 ~~~~
