@@ -215,5 +215,26 @@ runCountThe fileName <span class="fu">=</span>
   <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m b
   <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m (a,b)</code></pre>
 </div>
+<div id="why-is-it-fun" class="slide section level1">
+<h1>Why is it fun?</h1>
+<pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> audio = <span class="fu">MonoWaveEncoder</span>() <span class="co">// For now we are using WAVE</span>
+<span class="kw">val</span> audioHeader = <span class="fu">Enumerator</span>(audio.<span class="fu">header</span>)
+<span class="kw">val</span> audioEncoder = Enumeratee.<span class="fu">map</span>[Array[Double]](audio.<span class="fu">encodeData</span>)
+<span class="kw">val</span> chunker = Enumeratee grouped {
+  Traversable.<span class="fu">take</span>[Array[Double]](<span class="dv">5000</span>) &amp;&gt;&gt; Iteratee.<span class="fu">consume</span>())
+}
+<span class="co">// ..</span></code></pre>
+<blockquote>
+<p>Iteratees + HTTP Sound Streaming + WebSockets = Fun!</p>
+<p>-- @Sadache @mrspeaker @greweb @drfars</p>
+</blockquote>
+</div>
+<div id="zound-example" class="slide section level1">
+<h1>Zound example</h1>
+<pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">git</span> clone git://github.com/robrasmussen/zound.git
+$ <span class="kw">cd</span> zound
+$ <span class="kw">sbt</span>  <span class="co"># wait eternity</span>
+<span class="kw">&gt;</span> <span class="kw">run</span></code></pre>
+</div>
 </body>
 </html>

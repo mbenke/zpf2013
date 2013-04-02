@@ -202,3 +202,25 @@ en_pair :: Monad m => Iteratee el m a
   -> Iteratee el m b
   -> Iteratee el m (a,b)
 ~~~~
+
+# Why is it fun?
+~~~~ {.scala}
+val audio = MonoWaveEncoder() // For now we are using WAVE
+val audioHeader = Enumerator(audio.header)
+val audioEncoder = Enumeratee.map[Array[Double]](audio.encodeData)
+val chunker = Enumeratee grouped {
+  Traversable.take[Array[Double]](5000) &>> Iteratee.consume())
+}
+// ..
+~~~~
+> Iteratees + HTTP Sound Streaming + WebSockets = Fun!
+>
+> -- @Sadache @mrspeaker @greweb @drfars
+
+# Zound example
+~~~~ {.bash}
+$ git clone git://github.com/robrasmussen/zound.git
+$ cd zound
+$ sbt  # wait eternity
+> run
+~~~~
