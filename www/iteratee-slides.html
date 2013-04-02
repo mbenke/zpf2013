@@ -157,11 +157,84 @@ countSpaces <span class="fu">=</span> <span class="fu">id</span> <span class="fu
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Enumeratee</span> elo eli m a <span class="fu">=</span>
   <span class="dt">Iteratee</span> eli m a <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> elo m (<span class="dt">Iteratee</span> eli m a)
 
+<span class="kw">infixr</span> <span class="dv">1</span> <span class="fu">.|</span>
+<span class="ot">(.|) ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> (<span class="dt">Iteratee</span> el m a <span class="ot">-&gt;</span> w)
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m (<span class="dt">Iteratee</span> el&#39; m a)
+  <span class="ot">-&gt;</span> w
+
 <span class="ot">en_filter ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> (el <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Enumeratee</span> el el m a
 
 <span class="fu">take</span><span class="ot"> ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Enumeratee</span> el el m a  <span class="co">-- List.take</span>
 
 <span class="ot">enum_words ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Enumeratee</span> <span class="dt">Char</span> <span class="dt">String</span> m a  <span class="co">-- List.words</span></code></pre>
+</div>
+<div id="lets-recall-last-example" class="slide section level1">
+<h1>Let's recall last example</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">countSpaces ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Iteratee</span> <span class="dt">Char</span> m <span class="dt">Int</span>
+countSpaces <span class="fu">=</span> <span class="fu">id</span> <span class="fu">.|</span> (en_filter <span class="fu">isSpace</span>) count_i
+
+runCountSpaces fileName <span class="fu">=</span> <span class="fu">print</span> <span class="fu">=&lt;&lt;</span> run <span class="fu">=&lt;&lt;</span> enum_file fileName countSpaces</code></pre>
+</div>
+<div id="how-about-counting-spaces-in-many-files" class="slide section level1">
+<h1>How about counting spaces in many files?</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">countSpaces ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Iteratee</span> <span class="dt">Char</span> m <span class="dt">Int</span>
+countSpaces <span class="fu">=</span> <span class="fu">id</span> <span class="fu">.|</span> (en_filter <span class="fu">isSpace</span>) count_i
+
+runCountManySpaces fileNames <span class="fu">=</span>
+  <span class="fu">print</span> <span class="fu">=&lt;&lt;</span> run <span class="fu">=&lt;&lt;</span> <span class="fu">foldr</span> (<span class="fu">&gt;&gt;&gt;</span>) <span class="fu">return</span> (<span class="fu">map</span> enum_file fileNames) countSpaces</code></pre>
+</div>
+<div id="lets-see-how-we-count-occurrences-of-word-the" class="slide section level1">
+<h1>Let's see how we count occurrences of word &quot; the &quot;?</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">countThe ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Iteratee</span> <span class="dt">Char</span> m <span class="dt">Int</span>
+countThe <span class="fu">=</span> <span class="fu">id</span> <span class="fu">.|</span> enum_words <span class="fu">.|</span> en_filter (<span class="fu">==</span> <span class="st">&quot;the&quot;</span>) count_i
+
+runCountThe fileName <span class="fu">=</span>
+  <span class="fu">print</span> <span class="fu">=&lt;&lt;</span> run <span class="fu">=&lt;&lt;</span> enum_file fileName countThe</code></pre>
+<blockquote>
+<p>Should have done Unix pipes in Haskell..</p>
+<p>-- Dennis Ritchie</p>
+</blockquote>
+</div>
+<div id="more-composability-with-parallel-composition" class="slide section level1">
+<h1>More composability with parallel composition</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">runCountSpacesAndTheAtFirstNChars n fileName <span class="fu">=</span>
+  <span class="fu">print</span> <span class="fu">=&lt;&lt;</span> run <span class="fu">=&lt;&lt;</span> enum_file fileName <span class="fu">.|</span>
+    <span class="fu">take</span> n (countSpaces <span class="ot">`en_pair`</span> countThe)
+
+<span class="ot">en_pair ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Iteratee</span> el m a
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m b
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m (a,b)</code></pre>
+</div>
+<div id="terminating-consumption-before-eof-and-closing-file" class="slide section level1">
+<h1>Terminating consumption before EOF and closing file (!!!)</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">runCountSpacesAndTheAtFirstNChars n fileName <span class="fu">=</span>
+  <span class="fu">print</span> <span class="fu">=&lt;&lt;</span> run <span class="fu">=&lt;&lt;</span> enum_file fileName <span class="fu">.|</span>
+    <span class="fu">take</span> n (countSpaces <span class="ot">`en_pair`</span> countThe)
+
+<span class="ot">en_pair ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Iteratee</span> el m a
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m b
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m (a,b)</code></pre>
+</div>
+<div id="why-is-it-fun" class="slide section level1">
+<h1>Why is it fun?</h1>
+<pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">val</span> audio = <span class="fu">MonoWaveEncoder</span>() <span class="co">// For now we are using WAVE</span>
+<span class="kw">val</span> audioHeader = <span class="fu">Enumerator</span>(audio.<span class="fu">header</span>)
+<span class="kw">val</span> audioEncoder = Enumeratee.<span class="fu">map</span>[Array[Double]](audio.<span class="fu">encodeData</span>)
+<span class="kw">val</span> chunker = Enumeratee grouped {
+  Traversable.<span class="fu">take</span>[Array[Double]](<span class="dv">5000</span>) &amp;&gt;&gt; Iteratee.<span class="fu">consume</span>())
+}
+<span class="co">// ..</span></code></pre>
+<blockquote>
+<p>Iteratees + HTTP Sound Streaming + WebSockets = Fun!</p>
+<p>-- @Sadache @mrspeaker @greweb @drfars</p>
+</blockquote>
+</div>
+<div id="zound-example" class="slide section level1">
+<h1>Zound example</h1>
+<pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">git</span> clone git://github.com/robrasmussen/zound.git
+$ <span class="kw">cd</span> zound
+$ <span class="kw">sbt</span>  <span class="co"># wait eternity</span>
+<span class="kw">&gt;</span> <span class="kw">run</span></code></pre>
 </div>
 </body>
 </html>

@@ -4,5 +4,5 @@ countSpaces :: String -> Int
 countSpaces = length . filter isSpace
 
 main = do
-     s <- readFile "Makefile"
-     print $ countSpaces s
+  s <- readFile "Makefile"
+  print $ countSpaces s
