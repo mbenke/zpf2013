@@ -139,9 +139,31 @@ enum_file :: FilePath -> Enumerator Char IO a
 type Enumeratee elo eli m a =
   Iteratee eli m a -> Iteratee elo m (Iteratee eli m a)
 
+infixr 1 .|
+(.|) :: Monad m => (Iteratee el m a -> w)
+  -> Iteratee el m (Iteratee el' m a)
+  -> w
+
 en_filter :: Monad m => (el -> Bool) -> Enumeratee el el m a
 
 take :: Monad m => Int -> Enumeratee el el m a  -- List.take
 
 enum_words :: Monad m => Enumeratee Char String m a  -- List.words
+~~~~
+
+# Let's recall last example
+~~~~ {.haskell}
+countSpaces :: Monad m => Iteratee Char m Int
+countSpaces = id .| (en_filter isSpace) count_i
+
+runCountSpaces fileName = print =<< run =<< enum_file fileName countSpaces
+~~~~
+
+# How about counting spaces in many files?
+~~~~ {.haskell}
+countSpaces :: Monad m => Iteratee Char m Int
+countSpaces = id .| (en_filter isSpace) count_i
+
+runCountManySpaces fileNames =
+  print =<< run =<< foldr1 (>>>) (map enum_file fileNames) countSpaces
 ~~~~

@@ -3,7 +3,14 @@ import Data.Char(isSpace)
 
 runCountSpaces fileName = print =<< run =<< enum_file fileName countSpaces
 
+runCountManySpaces fileNames =
+  print =<< run =<< foldr (>>>) enum_eof (map enum_file fileNames) countSpaces
+
 main = runCountSpaces "Makefile"
+
+main2 = runCountManySpaces ["Makefile", "iteratee.md"]
+
+main3 = runCountManySpaces []
 
 countSpaces :: Monad m => Iteratee Char m Int
 countSpaces = id .| (en_filter isSpace) count_i
