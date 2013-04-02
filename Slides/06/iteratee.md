@@ -180,3 +180,25 @@ runCountThe fileName =
 > Should have done Unix pipes in Haskell..
 >
 > -- Dennis Ritchie
+
+# More composability with parallel composition
+~~~~ {.haskell}
+runCountSpacesAndTheAtFirstNChars n fileName =
+  print =<< run =<< enum_file fileName .|
+    take n (countSpaces `en_pair` countThe)
+
+en_pair :: Monad m => Iteratee el m a
+  -> Iteratee el m b
+  -> Iteratee el m (a,b)
+~~~~
+
+# Terminating consumption before EOF and closing file (!!!)
+~~~~ {.haskell}
+runCountSpacesAndTheAtFirstNChars n fileName =
+  print =<< run =<< enum_file fileName .|
+    take n (countSpaces `en_pair` countThe)
+
+en_pair :: Monad m => Iteratee el m a
+  -> Iteratee el m b
+  -> Iteratee el m (a,b)
+~~~~

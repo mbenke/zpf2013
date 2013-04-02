@@ -195,5 +195,25 @@ runCountThe fileName <span class="fu">=</span>
 <p>-- Dennis Ritchie</p>
 </blockquote>
 </div>
+<div id="more-composability-with-parallel-composition" class="slide section level1">
+<h1>More composability with parallel composition</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">runCountSpacesAndTheAtFirstNChars n fileName <span class="fu">=</span>
+  <span class="fu">print</span> <span class="fu">=&lt;&lt;</span> run <span class="fu">=&lt;&lt;</span> enum_file fileName <span class="fu">.|</span>
+    <span class="fu">take</span> n (countSpaces <span class="ot">`en_pair`</span> countThe)
+
+<span class="ot">en_pair ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Iteratee</span> el m a
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m b
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m (a,b)</code></pre>
+</div>
+<div id="terminating-consumption-before-eof-and-closing-file" class="slide section level1">
+<h1>Terminating consumption before EOF and closing file (!!!)</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">runCountSpacesAndTheAtFirstNChars n fileName <span class="fu">=</span>
+  <span class="fu">print</span> <span class="fu">=&lt;&lt;</span> run <span class="fu">=&lt;&lt;</span> enum_file fileName <span class="fu">.|</span>
+    <span class="fu">take</span> n (countSpaces <span class="ot">`en_pair`</span> countThe)
+
+<span class="ot">en_pair ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Iteratee</span> el m a
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m b
+  <span class="ot">-&gt;</span> <span class="dt">Iteratee</span> el m (a,b)</code></pre>
+</div>
 </body>
 </html>
