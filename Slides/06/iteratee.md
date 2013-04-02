@@ -145,4 +145,3 @@ take :: Monad m => Int -> Enumeratee el el m a  -- List.take
 
 enum_words :: Monad m => Enumeratee Char String m a  -- List.words
 ~~~~
-
