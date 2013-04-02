@@ -167,3 +167,16 @@ countSpaces = id .| (en_filter isSpace) count_i
 runCountManySpaces fileNames =
   print =<< run =<< foldr (>>>) return (map enum_file fileNames) countSpaces
 ~~~~
+
+# Let's see how we count occurrences of word " the "?
+~~~~ {.haskell}
+countThe :: Monad m => Iteratee Char m Int
+countThe = id .| enum_words .| en_filter (== "the") count_i
+
+runCountThe fileName =
+  print =<< run =<< enum_file fileName countThe
+~~~~
+
+> Should have done Unix pipes in Haskell..
+>
+> -- Dennis Ritchie
