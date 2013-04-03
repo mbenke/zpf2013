@@ -139,6 +139,11 @@ enum_file :: FilePath -> Enumerator Char IO a
 type Enumeratee elo eli m a =
   Iteratee eli m a -> Iteratee elo m (Iteratee eli m a)
 
+infixr 1 .|
+(.|) :: Monad m => (Iteratee el m a -> w)
+  -> Iteratee el m (Iteratee el' m a)
+  -> w
+
 en_filter :: Monad m => (el -> Bool) -> Enumeratee el el m a
 
 take :: Monad m => Int -> Enumeratee el el m a  -- List.take
@@ -146,3 +151,76 @@ take :: Monad m => Int -> Enumeratee el el m a  -- List.take
 enum_words :: Monad m => Enumeratee Char String m a  -- List.words
 ~~~~
 
+# Let's recall last example
+~~~~ {.haskell}
+countSpaces :: Monad m => Iteratee Char m Int
+countSpaces = id .| (en_filter isSpace) count_i
+
+runCountSpaces fileName = print =<< run =<< enum_file fileName countSpaces
+~~~~
+
+# How about counting spaces in many files?
+~~~~ {.haskell}
+countSpaces :: Monad m => Iteratee Char m Int
+countSpaces = id .| (en_filter isSpace) count_i
+
+runCountManySpaces fileNames =
+  print =<< run =<< foldr (>>>) return (map enum_file fileNames) countSpaces
+~~~~
+
+# Let's see how we count occurrences of word " the "?
+~~~~ {.haskell}
+countThe :: Monad m => Iteratee Char m Int
+countThe = id .| enum_words .| en_filter (== "the") count_i
+
+runCountThe fileName =
+  print =<< run =<< enum_file fileName countThe
+~~~~
+
+> Should have done Unix pipes in Haskell..
+>
+> -- Dennis Ritchie
+
+# More composability with parallel composition
+~~~~ {.haskell}
+runCountSpacesAndTheAtFirstNChars n fileName =
+  print =<< run =<< enum_file fileName .|
+    take n (countSpaces `en_pair` countThe)
+
+en_pair :: Monad m => Iteratee el m a
+  -> Iteratee el m b
+  -> Iteratee el m (a,b)
+~~~~
+
+# Terminating consumption before EOF and closing file (!!!)
+~~~~ {.haskell}
+runCountSpacesAndTheAtFirstNChars n fileName =
+  print =<< run =<< enum_file fileName .|
+    take n (countSpaces `en_pair` countThe)
+
+en_pair :: Monad m => Iteratee el m a
+  -> Iteratee el m b
+  -> Iteratee el m (a,b)
+~~~~
+
+# Why is it fun?
+~~~~ {.scala}
+val audio = MonoWaveEncoder() // For now we are using WAVE
+val audioHeader = Enumerator(audio.header)
+val audioEncoder = Enumeratee.map[Array[Double]](audio.encodeData)
+val chunker = Enumeratee grouped {
+  Traversable.take[Array[Double]](5000) &>> Iteratee.consume())
+}
+// ..
+~~~~
+> Iteratees + HTTP Sound Streaming + WebSockets = Fun!
+>
+> -- @Sadache @mrspeaker @greweb @drfars
+
+# Zound example
+~~~~ {.bash}
+$ git clone git://github.com/robrasmussen/zound.git
+$ cd zound
+$ sbt  # wait eternity
+> run
+~~~~
