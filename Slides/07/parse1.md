@@ -188,9 +188,8 @@ endBy p q = do {x <- p; q; return x}
 
 manyTill :: Parser a -> Parser b -> Parser [a]
 manyTill p end  = scan where
-  scan = do{ end; return [] }
-      <|>
-         do{ x <- p; xs <- scan; return (x:xs) }
+  scan = do { end; return [] }
+      <|>do { x <- p; xs <- scan; return (x:xs) }
 ~~~~
 
 # Jeszcze ciągi
@@ -216,10 +215,9 @@ remainingCells =
 cells = cellContent `sepBy` char ','
 
 sepBy p sep         = sepBy1 p sep <|> return []
-sepBy1 p sep        = do{ x <- p
-                        ; xs <- many (sep >> p)
-                        ; return (x:xs)
-                        }
+sepBy1 p sep        = do x <- p
+                         xs <- many (sep >> p)
+                         return (x:xs)
 ~~~~
 
 # Ciągi ze znaczącymi separatorami
@@ -260,6 +258,8 @@ test4b = testP p4 "x"
 -- >>> test4b
 -- Error "unexpected 'x'"
 ~~~~
+
+# Lepsza obsługa błędów
 
 Chcielibyśmy, by komunikat o błędzie podawał: 
 
@@ -307,6 +307,8 @@ addExpected x (UnknownError _) = Expected [x]
 addExpected x (Unexpected _) = Expected [x]
 ~~~~
 
+# Ćwiczenie
+
 Ćwiczenie: zmodyfikuj swoje rozwiązanie poprzedniego ćwiczenia by działało jak Parsec:
 
 ~~~~
@@ -337,14 +339,11 @@ Parsec jest szybszy niz nasze kombinatory:
 ~~~~
 parsec 3:
 benchmarking gen 1e5
-collecting 100 samples, 1 iterations each, in estimated 8.396387 s
-mean: 108.4311 ms, lb 104.1851 ms, ub 112.6549 ms, ci 0.950
-std dev: 21.71925 ms, lb 20.55811 ms, ub 23.11727 ms, ci 0.950
+mean: 108.4311 ms
 
 MyParsec2a:
-benchmarking gen 100000
-collecting 100 samples, 1 iterations each, in estimated 13.94670 s
-mean: 138.7350 ms, lb 136.4866 ms, ub 141.5722 ms, ci 0.950
+benchmarking gen 1e5
+mean: 138.7350 ms
 ~~~~
 
 Szczegóły: pmresults.txt

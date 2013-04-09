@@ -31,10 +31,9 @@ oneOf cs            = satisfy (\c -> elem c cs)
 noneOf cs           = satisfy (\c -> not (elem c cs))
 
 sepBy p sep         = sepBy1 p sep <|> return []
-sepBy1 p sep        = do{ x <- p
-                        ; xs <- many (sep >> p)
-                        ; return (x:xs)
-                        }
+sepBy1 p sep        = do x <- p
+                         xs <- many (sep >> p)
+                         return (x:xs)
                       
 chainl1 :: Parser a -> Parser (a->a->a) -> Parser a
 chainl1 p op        = do{ x <- p; rest x }
