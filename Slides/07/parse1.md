@@ -320,6 +320,8 @@ expecting digit
 
 # Usprawnianie
 
+Benchmark
+
 ~~~~ {.haskell}
 gen 0 = "1"
 gen n = ('1':'+':'1':'-':gen (n-1))
@@ -333,6 +335,8 @@ addop   =   do{ char '+'; return (+) }
 
 test n =  parse pExp "gen" (gen n)
 ~~~~
+
+# 2012: GHC 7.2
 
 Parsec jest szybszy niz nasze kombinatory:
 
@@ -517,3 +521,14 @@ newtype Parser a = Parser {unParser :: forall b .
               -> b
              }
 ~~~~
+
+# Tempora mutantur: GHC 7.6.2
+
+~~~~
+parsec:  mean: 81.56124 ms,
+2a: mean: 83.16231 ms
+2c: mean: 54.88565 ms
+3a: mean: 40.86558 ms
+~~~~
+
+Szczegóły: pmresults76.txt

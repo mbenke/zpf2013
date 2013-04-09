@@ -3,6 +3,13 @@ GHCOPTS=-O -rtsopts
 
 all: $(BINFILES)
 
+benchmark: all
+	ghc --version
+	./pm2a
+	./pm2c
+	./pm3a
+	./pmparsec
+
 pmparsec: PlusMinusParsec.hs
 	ghc $(GHCOPTS) -o $@ --make $^
 

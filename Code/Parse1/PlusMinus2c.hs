@@ -15,6 +15,6 @@ addop   =   do{ char '+'; return (+) }
 test n =  parse pExp "gen" (gen n)
 
 main = defaultMain 
-       [ bench "gen 10000" $ whnf test 10000
-       , bench "gen 100000" $ whnf test 100000
+       [ {-bench "gen 10000" $ whnf test 10000
+       , -}bench "gen 100000" $ whnf test 100000
        ]  

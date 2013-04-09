@@ -1,0 +1,67 @@
+ghc --version
+The Glorious Glasgow Haskell Compilation System, version 7.6.2
+./pm2a
+warming up
+estimating clock resolution...
+mean is 2.410645 us (320001 iterations)
+found 1229 outliers among 319999 samples (0.4%)
+  988 (0.3%) high severe
+estimating cost of a clock call...
+mean is 184.2890 ns (17 iterations)
+found 1 outliers among 17 samples (5.9%)
+  1 (5.9%) high mild
+
+benchmarking gen 1e5
+collecting 100 samples, 1 iterations each, in estimated 7.780194 s
+mean: 83.16231 ms, lb 81.17346 ms, ub 85.43904 ms, ci 0.950
+std dev: 10.90537 ms, lb 9.369219 ms, ub 12.70327 ms, ci 0.950
+found 6 outliers among 100 samples (6.0%)
+  6 (6.0%) high mild
+variance introduced by outliers: 87.296%
+variance is severely inflated by outliers
+./pm2c
+warming up
+estimating clock resolution...
+mean is 2.367663 us (320001 iterations)
+found 1157 outliers among 319999 samples (0.4%)
+  925 (0.3%) high severe
+estimating cost of a clock call...
+mean is 180.7972 ns (17 iterations)
+found 1 outliers among 17 samples (5.9%)
+  1 (5.9%) low severe
+
+benchmarking gen 100000
+collecting 100 samples, 1 iterations each, in estimated 5.057907 s
+mean: 54.88565 ms, lb 53.72400 ms, ub 56.02542 ms, ci 0.950
+std dev: 5.887474 ms, lb 5.282898 ms, ub 6.707303 ms, ci 0.950
+variance introduced by outliers: 81.087%
+variance is severely inflated by outliers
+./pm3a
+warming up
+estimating clock resolution...
+mean is 2.414817 us (320001 iterations)
+found 1159 outliers among 319999 samples (0.4%)
+  925 (0.3%) high severe
+estimating cost of a clock call...
+mean is 182.3858 ns (17 iterations)
+
+benchmarking gen 1e5
+mean: 40.86558 ms, lb 39.99331 ms, ub 41.82126 ms, ci 0.950
+std dev: 4.667413 ms, lb 4.121013 ms, ub 5.295096 ms, ci 0.950
+variance introduced by outliers: 83.155%
+variance is severely inflated by outliers
+./pmparsec
+warming up
+estimating clock resolution...
+mean is 2.505508 us (320001 iterations)
+found 1231 outliers among 319999 samples (0.4%)
+  942 (0.3%) high severe
+estimating cost of a clock call...
+mean is 180.4834 ns (18 iterations)
+
+benchmarking gen 1e5
+collecting 100 samples, 1 iterations each, in estimated 7.794094 s
+mean: 81.56124 ms, lb 80.58588 ms, ub 82.52026 ms, ci 0.950
+std dev: 4.942339 ms, lb 4.397388 ms, ub 5.756854 ms, ci 0.950
+variance introduced by outliers: 57.519%
+variance is severely inflated by outliers

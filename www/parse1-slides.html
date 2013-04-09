@@ -177,9 +177,8 @@ endBy p q <span class="fu">=</span> <span class="kw">do</span> {x <span class="o
 
 <span class="ot">manyTill ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b <span class="ot">-&gt;</span> <span class="dt">Parser</span> [a]
 manyTill p end  <span class="fu">=</span> scan <span class="kw">where</span>
-  scan <span class="fu">=</span> <span class="kw">do</span>{ end; <span class="fu">return</span> [] }
-      <span class="fu">&lt;|&gt;</span>
-         <span class="kw">do</span>{ x <span class="ot">&lt;-</span> p; xs <span class="ot">&lt;-</span> scan; <span class="fu">return</span> (x<span class="fu">:</span>xs) }</code></pre>
+  scan <span class="fu">=</span> <span class="kw">do</span> { end; <span class="fu">return</span> [] }
+      <span class="fu">&lt;|&gt;</span><span class="kw">do</span> { x <span class="ot">&lt;-</span> p; xs <span class="ot">&lt;-</span> scan; <span class="fu">return</span> (x<span class="fu">:</span>xs) }</code></pre>
 </div>
 <div class="section slide level1" id="jeszcze-ciągi">
 <h1>Jeszcze ciągi</h1>
@@ -198,10 +197,9 @@ remainingCells <span class="fu">=</span>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">cells <span class="fu">=</span> cellContent <span class="ot">`sepBy`</span> char <span class="ch">&#39;,&#39;</span>
 
 sepBy p sep         <span class="fu">=</span> sepBy1 p sep <span class="fu">&lt;|&gt;</span> <span class="fu">return</span> []
-sepBy1 p sep        <span class="fu">=</span> <span class="kw">do</span>{ x <span class="ot">&lt;-</span> p
-                        ; xs <span class="ot">&lt;-</span> many (sep <span class="fu">&gt;&gt;</span> p)
-                        ; <span class="fu">return</span> (x<span class="fu">:</span>xs)
-                        }</code></pre>
+sepBy1 p sep        <span class="fu">=</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> p
+                         xs <span class="ot">&lt;-</span> many (sep <span class="fu">&gt;&gt;</span> p)
+                         <span class="fu">return</span> (x<span class="fu">:</span>xs)</code></pre>
 </div>
 <div class="section slide level1" id="ciągi-ze-znaczącymi-separatorami">
 <h1>Ciągi ze znaczącymi separatorami</h1>
@@ -236,6 +234,9 @@ test4b <span class="fu">=</span> testP p4 <span class="st">&quot;x&quot;</span>
 <span class="co">-- Ok 7 &quot;&quot;</span>
 <span class="co">-- &gt;&gt;&gt; test4b</span>
 <span class="co">-- Error &quot;unexpected &#39;x&#39;&quot;</span></code></pre>
+</div>
+<div class="section slide level1" id="lepsza-obsługa-błędów-1">
+<h1>Lepsza obsługa błędów</h1>
 <p>Chcielibyśmy, by komunikat o błędzie podawał:</p>
 <ul>
 <li>gdzie wystąpił błąd</li>
@@ -274,6 +275,9 @@ label p expected <span class="fu">=</span> <span class="dt">Parser</span> <span 
 addExpected x (<span class="dt">Expected</span> xs) <span class="fu">=</span> <span class="dt">Expected</span> (x<span class="fu">:</span>xs)
 addExpected x (<span class="dt">UnknownError</span> _) <span class="fu">=</span> <span class="dt">Expected</span> [x]
 addExpected x (<span class="dt">Unexpected</span> _) <span class="fu">=</span> <span class="dt">Expected</span> [x]</code></pre>
+</div>
+<div class="section slide level1" id="ćwiczenie">
+<h1>Ćwiczenie</h1>
 <p>Ćwiczenie: zmodyfikuj swoje rozwiązanie poprzedniego ćwiczenia by działało jak Parsec:</p>
 <pre><code>Prelude Text.Parsec&gt; parse digit &quot;&quot; &quot;&quot;
 Left (line 1, column 1):
@@ -282,6 +286,7 @@ expecting digit</code></pre>
 </div>
 <div class="section slide level1" id="usprawnianie">
 <h1>Usprawnianie</h1>
+<p>Benchmark</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">gen <span class="dv">0</span> <span class="fu">=</span> <span class="st">&quot;1&quot;</span>
 gen n <span class="fu">=</span> (<span class="ch">&#39;1&#39;</span><span class="fu">:</span><span class="ch">&#39;+&#39;</span><span class="fu">:</span><span class="ch">&#39;1&#39;</span><span class="fu">:</span><span class="ch">&#39;-&#39;</span><span class="fu">:</span>gen (n<span class="fu">-</span><span class="dv">1</span>))
 
@@ -293,17 +298,17 @@ addop   <span class="fu">=</span>   <span class="kw">do</span>{ char <span class
           <span class="fu">&lt;|&gt;</span> <span class="kw">do</span>{ char <span class="ch">&#39;-&#39;</span>; <span class="fu">return</span> (<span class="fu">-</span>) }
 
 test n <span class="fu">=</span>  parse pExp <span class="st">&quot;gen&quot;</span> (gen n)</code></pre>
+</div>
+<div class="section slide level1" id="ghc-7.2">
+<h1>2012: GHC 7.2</h1>
 <p>Parsec jest szybszy niz nasze kombinatory:</p>
 <pre><code>parsec 3:
 benchmarking gen 1e5
-collecting 100 samples, 1 iterations each, in estimated 8.396387 s
-mean: 108.4311 ms, lb 104.1851 ms, ub 112.6549 ms, ci 0.950
-std dev: 21.71925 ms, lb 20.55811 ms, ub 23.11727 ms, ci 0.950
+mean: 108.4311 ms
 
 MyParsec2a:
-benchmarking gen 100000
-collecting 100 samples, 1 iterations each, in estimated 13.94670 s
-mean: 138.7350 ms, lb 136.4866 ms, ub 141.5722 ms, ci 0.950</code></pre>
+benchmarking gen 1e5
+mean: 138.7350 ms</code></pre>
 <p>Szczegóły: pmresults.txt</p>
 </div>
 <div class="section slide level1" id="koszt-alternatywy">
@@ -432,7 +437,7 @@ mean: 35.37689 ms, lb 34.61368 ms, ub 36.20859 ms
        6,234,896 bytes maximum residency (309 sample(s))
               21 MB total memory in use (0 MB lost due to fragmentation)</code></pre>
 </div>
-<div class="section slide level1" id="ćwiczenie">
+<div class="section slide level1" id="ćwiczenie-1">
 <h1>Ćwiczenie</h1>
 <ul>
 <li><p>Ćwiczenie: połączyć pomysły 2c (Empty/Consumed) i 3a (kontynuacje) ewentualnie można jeszcze dołożyć 2b (obsługa błędów).</p></li>
@@ -446,6 +451,14 @@ mean: 35.37689 ms, lb 34.61368 ms, ub 36.20859 ms
               <span class="ot">-&gt;</span> (<span class="dt">ParseError</span> <span class="ot">-&gt;</span> b)               <span class="co">-- empty err</span>
               <span class="ot">-&gt;</span> b
              }</code></pre>
+</div>
+<div class="section slide level1" id="tempora-mutantur-ghc-7.6.2">
+<h1>Tempora mutantur: GHC 7.6.2</h1>
+<pre><code>parsec:  mean: 81.56124 ms,
+2a: mean: 83.16231 ms
+2c: mean: 54.88565 ms
+3a: mean: 40.86558 ms</code></pre>
+<p>Szczegóły: pmresults76.txt</p>
 </div>
 </body>
 </html>
