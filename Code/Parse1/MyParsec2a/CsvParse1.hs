@@ -1,7 +1,5 @@
 module MyParsec2a.CsvParse where
-import MyParsec2a.Prim
-import MyParsec2a.Combinators
-
+import MyParsec2a 
 {- A CSV file contains 0 or more lines, each of which is terminated
    by the end-of-line character (eol). -}
 csvFile :: Parser [[String]]

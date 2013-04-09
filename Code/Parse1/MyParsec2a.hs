@@ -3,6 +3,7 @@ module MyParsec2a
          parse,
          Parser,
          char,
+         eof,
          (<|>),
          module MyParsec2a.Combinators,
   )where

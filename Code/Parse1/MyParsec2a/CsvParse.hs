@@ -9,7 +9,7 @@ csvFile =  manyTill line eof
 
 -- Each line contains 1 or more cells, separated by a comma
 line :: Parser [String]
-line = cells `thenSkip` eol
+line = cells `endBy` eol
        
 cells = cellContent `sepBy` char ','
 

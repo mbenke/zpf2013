@@ -142,6 +142,7 @@ Mozemy sobie poradzić poświęcając wydajność za ogólność, np.
 
 ~~~~ {.haskell}
 type Parser a = StateT [Char] (ErrorT String []) a
+
 p <|> q = mkParser $ \xs -> let 
     ps = runParser p xs
     qs = runParser q xs
@@ -166,7 +167,7 @@ spaces p = skipMany space
 
 # Przykład
 
-Za "Real World Haskell": http://book.realworldhaskell.org/read/using-parsec.html
+Za [Real World Haskell](http://book.realworldhaskell.org/read/using-parsec.html)
 
 ~~~~ {.haskell}
 csvFile :: Parser [[String]]
@@ -179,6 +180,9 @@ csvFile =
 Ale można lepiej:
 
 ~~~~ {.haskell}
+csvFile = line `manyTill` eof
+line = cells `endBy` eol
+
 endBy  :: Parser a -> Parser b -> Parser a
 endBy p q = do {x <- p; q; return x}
 
@@ -187,9 +191,6 @@ manyTill p end  = scan where
   scan = do{ end; return [] }
       <|>
          do{ x <- p; xs <- scan; return (x:xs) }
-
-csvFile = manyTill eof line
-line = cells `endBy` eol
 ~~~~
 
 # Jeszcze ciągi

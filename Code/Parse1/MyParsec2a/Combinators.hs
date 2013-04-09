@@ -16,8 +16,8 @@ skipMany :: Parser a -> Parser ()
 skipMany p = many p >> return ()  -- można efektywniej
 spaces p = skipMany space
 
-thenSkip  :: Parser a -> Parser b -> Parser a
-thenSkip p q = do {x <- p; q; return x}
+endBy  :: Parser a -> Parser b -> Parser a
+endBy p q = do {x <- p; q; return x}
 
 manyTill :: Parser a -> Parser b -> Parser [a]
 manyTill p end  = scan where

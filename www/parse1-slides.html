@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" type="text/css" media="screen, projection, print"
+    href="http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+  <script src="http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz"
+    charset="utf-8" type="text/javascript"></script>
+</head>
+<body>
+<div class="section slide level1" id="kombinatory-parsujące">
+<h1>Kombinatory parsujące</h1>
+<p>Kod w katalogu Code/Parse1</p>
+<p>Możemy zdefiniować typ parserów na przykład jako</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">Parser</span> {<span class="ot"> runParser ::</span> 
+                       <span class="dt">String</span> <span class="ot">-&gt;</span> [(a,<span class="dt">String</span>)] }</code></pre>
+<p>albo, używając transformatorów monad</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">StateT</span> [<span class="dt">Char</span>] (<span class="dt">ErrorT</span> <span class="dt">String</span> []) a</code></pre>
+</div>
+<div class="section slide level1" id="kombinatory-parsujące-1">
+<h1>Kombinatory parsujące</h1>
+<p>oraz kombinatory (funkcje) reprezentujące elementarne parsery i sposoby łączenia parserów:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">item ::</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+<span class="ot">eof ::</span> <span class="dt">Parser</span> ()
+<span class="ot">(&lt;|&gt;) ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
+<span class="ot">satisfy ::</span> (<span class="dt">Char</span><span class="ot">-&gt;</span><span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+<span class="ot">char ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+char x <span class="fu">=</span> satisfy (<span class="fu">==</span>x)
+many,<span class="ot"> many1 ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> [a]</code></pre>
+<pre><code>&gt; testP eof &quot;&quot;
+Ok () &quot;&quot;
+&gt; testP item &quot;&quot;
+Error &quot;unexpected EOF&quot;
+&gt; testP item &quot;p&quot;
+Ok &#39;p&#39; &quot;&quot;
+&gt; testP (many $ char &#39;p&#39;) &quot;ppq&quot;
+Ok &quot;pp&quot; &quot;q&quot;</code></pre>
+</div>
+<div class="section slide level1" id="parsec">
+<h1>Parsec</h1>
+<p>Przeanalizujmy teraz jak zbudowana jest biblioteka Parsec, najpierw w wersji 2, potem 3</p>
+<p>Wersja 2 oparta jest na monadzie stanu, w pierwszym przybliżeniu:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Code/Parse1/MyParsec2a</span>
+<span class="kw">newtype</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">Parser</span> {<span class="ot"> runParser ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Reply</span> a }
+<span class="co">-- Poniższe typy będą rozszerzane w kolejnych wersjach</span>
+<span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span> [<span class="dt">Char</span>]
+<span class="kw">data</span> <span class="dt">Reply</span> a <span class="fu">=</span> <span class="dt">Ok</span> a <span class="dt">State</span> <span class="fu">|</span> <span class="dt">Error</span> <span class="dt">ParseError</span>  
+<span class="kw">type</span> <span class="dt">ParseError</span> <span class="fu">=</span> <span class="dt">String</span></code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">p3 ::</span> <span class="dt">Parser</span> <span class="dt">String</span>
+p3 <span class="fu">=</span> p <span class="fu">&lt;|&gt;</span> q <span class="kw">where</span>
+  p <span class="fu">=</span> char <span class="ch">&#39;p&#39;</span> <span class="fu">&gt;&gt;</span> eof <span class="fu">&gt;&gt;</span> <span class="fu">return</span> <span class="st">&quot;p&quot;</span>
+  q <span class="fu">=</span> char <span class="ch">&#39;p&#39;</span> <span class="fu">&gt;&gt;</span> char <span class="ch">&#39;q&#39;</span> <span class="fu">&gt;&gt;</span> eof <span class="fu">&gt;&gt;</span> <span class="fu">return</span> <span class="st">&quot;q&quot;</span>
+test3 <span class="fu">=</span> runParser p3 <span class="st">&quot;pq&quot;</span>
+
+<span class="fu">*</span><span class="dt">MyParsec2a</span><span class="fu">&gt;</span> test3
+<span class="dt">Ok</span> <span class="st">&quot;q&quot;</span> <span class="st">&quot;&quot;</span></code></pre>
+</div>
+<div class="section slide level1" id="podstawowe-kombinatory">
+<h1>Podstawowe kombinatory</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">item ::</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+item <span class="fu">=</span> <span class="dt">Parser</span> item0 <span class="kw">where</span>
+<span class="ot">  item0 ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Reply</span> <span class="dt">Char</span>
+  item0 [] <span class="fu">=</span> <span class="dt">Error</span> <span class="fu">$</span> unexpected <span class="st">&quot;EOF&quot;</span>
+  item0 (x<span class="fu">:</span>xs) <span class="fu">=</span> <span class="dt">Ok</span> x xs
+
+<span class="ot">eof ::</span> <span class="dt">Parser</span> ()
+eof <span class="fu">=</span> <span class="dt">Parser</span> eof&#39; <span class="kw">where</span>
+  eof&#39; [] <span class="fu">=</span> <span class="dt">Ok</span> () []
+  eof&#39; _ <span class="fu">=</span> <span class="dt">Error</span> (expected <span class="st">&quot;EOF&quot;</span>)
+
+<span class="ot">char ::</span> <span class="dt">Char</span> <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+char c <span class="fu">=</span> (satisfy (<span class="fu">==</span>c)) 
+
+<span class="ot">satisfy ::</span> (<span class="dt">Char</span><span class="ot">-&gt;</span><span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+satisfy p <span class="fu">=</span> <span class="dt">Parser</span> sat&#39; <span class="kw">where</span> 
+  sat&#39; []    <span class="fu">=</span> <span class="dt">Error</span> (expected <span class="st">&quot;EOF&quot;</span>) <span class="co">-- or check (p EOF)</span>
+  sat&#39; (a<span class="fu">:</span>s) <span class="fu">=</span> <span class="kw">if</span> (p a) <span class="kw">then</span> <span class="dt">Ok</span> a s <span class="kw">else</span> <span class="dt">Error</span> (unexpected <span class="fu">$</span> <span class="fu">show</span> a) </code></pre>
+</div>
+<div class="section slide level1" id="sekwencjonowanie-monada">
+<h1>Sekwencjonowanie: monada</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Parser</span> <span class="kw">where</span>
+  <span class="fu">return</span> a <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="dt">Ok</span> a s
+  
+  m <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> <span class="dt">Parser</span> (bind m k) <span class="kw">where</span> 
+    bind (<span class="dt">Parser</span> f) k s <span class="fu">=</span> <span class="kw">case</span> f s <span class="kw">of</span>
+      <span class="dt">Ok</span> a s&#39; <span class="ot">-&gt;</span> runParser (k a) s&#39;
+      <span class="dt">Error</span> e <span class="ot">-&gt;</span> <span class="dt">Error</span> e
+
+p0 <span class="fu">=</span> <span class="fu">return</span> ()
+test0 <span class="fu">=</span> testP p0 <span class="st">&quot;&quot;</span>
+
+p2 <span class="fu">=</span> item <span class="fu">&gt;&gt;</span> item
+test1 <span class="fu">=</span> testP p2 <span class="st">&quot;&quot;</span> <span class="co">-- expect &quot;EOF&quot;</span>
+test2 <span class="fu">=</span> testP p2 <span class="st">&quot;abc&quot;</span> <span class="co">-- &quot;&#39;b&#39;, c&quot;</span></code></pre>
+</div>
+<div class="section slide level1" id="zero-i-plus">
+<h1>Zero i Plus</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parserZero ::</span> <span class="dt">Parser</span> a
+parserZero <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="dt">Error</span> unknownError
+
+<span class="ot">parserPlus ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
+parserPlus p q <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">case</span> runParser p s <span class="kw">of</span>
+  <span class="dt">Error</span> e <span class="ot">-&gt;</span> runParser q s
+  ok <span class="ot">-&gt;</span> ok
+  
+(<span class="fu">&lt;|&gt;</span>) <span class="fu">=</span> parserPlus  
+
+<span class="kw">instance</span> <span class="dt">MonadPlus</span> <span class="dt">Parser</span> <span class="kw">where</span>
+  mzero <span class="fu">=</span> parserZero
+  mplus <span class="fu">=</span> parserPlus</code></pre>
+</div>
+<div class="section slide level1" id="lewicowa-alternatywa">
+<h1>Lewicowa Alternatywa</h1>
+<p>Alternatywa jest ``lewicowa'': jeśli pierwszy wariant się powiódł, to nie próbujemy drugiego - problemy jeśli gramatyka nie jest LL(1):</p>
+<pre><code>*MyParsec2a&gt; testP (many digit &gt;&gt; digit) &quot;1&quot;
+Error &quot;expected EOF&quot;</code></pre>
+<p>Mozemy sobie poradzić poświęcając wydajność za ogólność, np.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">StateT</span> [<span class="dt">Char</span>] (<span class="dt">ErrorT</span> <span class="dt">String</span> []) a
+
+p <span class="fu">&lt;|&gt;</span> q <span class="fu">=</span> mkParser <span class="fu">$</span> \xs <span class="ot">-&gt;</span> <span class="kw">let</span> 
+    ps <span class="fu">=</span> runParser p xs
+    qs <span class="fu">=</span> runParser q xs
+    <span class="kw">in</span> <span class="fu">map</span> <span class="kw">Right</span> (rights ps) <span class="fu">++</span> qs</code></pre>
+</div>
+<div class="section slide level1" id="ciągi">
+<h1>Ciągi</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">space ::</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+space <span class="fu">=</span> satisfy <span class="fu">isSpace</span>
+
+many,<span class="ot"> many1 ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> [a]
+many p  <span class="fu">=</span> many1 p <span class="fu">&lt;|&gt;</span> <span class="fu">return</span> []
+many1 p <span class="fu">=</span> <span class="kw">do</span> { x <span class="ot">&lt;-</span> p ; xs <span class="ot">&lt;-</span> many p; <span class="fu">return</span> (x<span class="fu">:</span>xs) }
+
+<span class="ot">skipMany ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> ()
+skipMany p <span class="fu">=</span> many p <span class="fu">&gt;&gt;</span> <span class="fu">return</span> ()  <span class="co">-- można efektywniej</span>
+spaces p <span class="fu">=</span> skipMany space</code></pre>
+</div>
+<div class="section slide level1" id="przykład">
+<h1>Przykład</h1>
+<p>Za <a href="http://book.realworldhaskell.org/read/using-parsec.html">Real World Haskell</a></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">csvFile ::</span> <span class="dt">Parser</span> [[<span class="dt">String</span>]]
+csvFile <span class="fu">=</span> 
+    <span class="kw">do</span> result <span class="ot">&lt;-</span> many line
+       eof
+       <span class="fu">return</span> result</code></pre>
+<p>Ale można lepiej:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">csvFile <span class="fu">=</span> line <span class="ot">`manyTill`</span> eof
+line <span class="fu">=</span> cells <span class="ot">`endBy`</span> eol
+
+<span class="ot">endBy  ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
+endBy p q <span class="fu">=</span> <span class="kw">do</span> {x <span class="ot">&lt;-</span> p; q; <span class="fu">return</span> x}
+
+<span class="ot">manyTill ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b <span class="ot">-&gt;</span> <span class="dt">Parser</span> [a]
+manyTill p end  <span class="fu">=</span> scan <span class="kw">where</span>
+  scan <span class="fu">=</span> <span class="kw">do</span>{ end; <span class="fu">return</span> [] }
+      <span class="fu">&lt;|&gt;</span>
+         <span class="kw">do</span>{ x <span class="ot">&lt;-</span> p; xs <span class="ot">&lt;-</span> scan; <span class="fu">return</span> (x<span class="fu">:</span>xs) }</code></pre>
+</div>
+<div class="section slide level1" id="jeszcze-ciągi">
+<h1>Jeszcze ciągi</h1>
+<p>Linia pliku CSV to ciąg komórek rozdzielonych przecinkami</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cells ::</span> <span class="dt">Parser</span> [<span class="dt">String</span>]
+cells <span class="fu">=</span> 
+    <span class="kw">do</span> first <span class="ot">&lt;-</span> cellContent
+       next <span class="ot">&lt;-</span> remainingCells
+       <span class="fu">return</span> (first <span class="fu">:</span> next)
+
+<span class="ot">remainingCells ::</span> <span class="dt">Parser</span> [<span class="dt">String</span>]
+remainingCells <span class="fu">=</span>
+    (char <span class="ch">&#39;,&#39;</span> <span class="fu">&gt;&gt;</span> cells)
+    <span class="fu">&lt;|&gt;</span> (<span class="fu">return</span> [])    </code></pre>
+<p>...ale chcielibyśmy prościej:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">cells <span class="fu">=</span> cellContent <span class="ot">`sepBy`</span> char <span class="ch">&#39;,&#39;</span>
+
+sepBy p sep         <span class="fu">=</span> sepBy1 p sep <span class="fu">&lt;|&gt;</span> <span class="fu">return</span> []
+sepBy1 p sep        <span class="fu">=</span> <span class="kw">do</span>{ x <span class="ot">&lt;-</span> p
+                        ; xs <span class="ot">&lt;-</span> many (sep <span class="fu">&gt;&gt;</span> p)
+                        ; <span class="fu">return</span> (x<span class="fu">:</span>xs)
+                        }</code></pre>
+</div>
+<div class="section slide level1" id="ciągi-ze-znaczącymi-separatorami">
+<h1>Ciągi ze znaczącymi separatorami</h1>
+<p>Klasyczny przykład - wyrażenia arytmetyczne</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- &gt;  expr    = term   `chainl1` addop</span>
+<span class="co">-- &gt;  term    = factor `chainl1` mulop</span>
+<span class="co">-- &gt;  factor  = parens expr &lt;|&gt; integer</span>
+<span class="co">-- &gt;</span>
+<span class="co">-- &gt;  mulop   =   do{ symbol &quot;*&quot;; return (*)   }</span>
+<span class="co">-- &gt;          &lt;|&gt; do{ symbol &quot;/&quot;; return (div) }</span>
+<span class="co">-- &gt;</span>
+<span class="co">-- &gt;  addop   =   do{ symbol &quot;+&quot;; return (+) }</span>
+<span class="co">-- &gt;          &lt;|&gt; do{ symbol &quot;-&quot;; return (-) }</span>
+
+<span class="ot">chainl1 ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> (a<span class="ot">-&gt;</span>a<span class="ot">-&gt;</span>a) <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
+chainl1 p op        <span class="fu">=</span> <span class="kw">do</span>{ x <span class="ot">&lt;-</span> p; rest x }
+                    <span class="kw">where</span>
+                      rest x    <span class="fu">=</span> <span class="kw">do</span>{ f <span class="ot">&lt;-</span> op
+                                    ; y <span class="ot">&lt;-</span> p
+                                    ; rest (f x y)
+                                    }
+                                <span class="fu">&lt;|&gt;</span> <span class="fu">return</span> x</code></pre>
+</div>
+<div class="section slide level1" id="lepsza-obsługa-błędów">
+<h1>Lepsza obsługa błędów</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">p4 ::</span> <span class="dt">Parser</span> <span class="dt">Int</span>
+p4 <span class="fu">=</span> <span class="fu">fmap</span> <span class="fu">digitToInt</span> (digit)
+test4a <span class="fu">=</span> testP p4 <span class="st">&quot;7&quot;</span>
+test4b <span class="fu">=</span> testP p4 <span class="st">&quot;x&quot;</span>
+
+<span class="co">-- &gt;&gt;&gt; test4a</span>
+<span class="co">-- Ok 7 &quot;&quot;</span>
+<span class="co">-- &gt;&gt;&gt; test4b</span>
+<span class="co">-- Error &quot;unexpected &#39;x&#39;&quot;</span></code></pre>
+<p>Chcielibyśmy, by komunikat o błędzie podawał:</p>
+<ul>
+<li>gdzie wystąpił błąd</li>
+<li>czego oczekiwano...</li>
+</ul>
+<p>Dla zrealizowania pierwszego postulatu, stan musi przechowywać bieżącą pozycję, np.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">State</span> <span class="fu">=</span> <span class="dt">State</span> {<span class="ot">stPos ::</span> <span class="dt">Pos</span>,<span class="ot"> stInput ::</span> <span class="dt">String</span>}</code></pre>
+<ul>
+<li>Ćwiczenie: zmodyfikuj MyParsec2a tak, aby przechowywał i raportował pozycje błędów.</li>
+</ul>
+</div>
+<div class="section slide level1" id="lepsze-raportowanie-błędów">
+<h1>Lepsze raportowanie błędów</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">digit ::</span> <span class="dt">Parser</span> <span class="dt">Char</span>
+digit <span class="fu">=</span> satisfy <span class="fu">isDigit</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;digit&quot;</span>
+
+<span class="co">-- *MyParsec2b&gt; test4b</span>
+<span class="co">-- Error (Expected [&quot;digit&quot;])</span></code></pre>
+</div>
+<div class="section slide level1" id="lepsze-raportowanie-błędów-1">
+<h1>Lepsze raportowanie błędów</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">ParseError</span> <span class="fu">=</span> <span class="dt">Message</span> <span class="co">-- lepiej [Message]</span>
+
+<span class="kw">data</span> <span class="dt">Message</span> <span class="fu">=</span> 
+  <span class="dt">UnknownError</span> <span class="dt">String</span>
+  <span class="fu">|</span> <span class="dt">Unexpected</span> <span class="dt">String</span>
+  <span class="fu">|</span> <span class="dt">Expected</span> [<span class="dt">String</span>]
+               <span class="kw">deriving</span> <span class="kw">Show</span>
+
+p <span class="fu">&lt;?&gt;</span> expected <span class="fu">=</span> label p expected
+
+label p expected <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \st <span class="ot">-&gt;</span> <span class="kw">case</span> runParser p st <span class="kw">of</span>
+  <span class="dt">Ok</span> a st&#39; <span class="ot">-&gt;</span> <span class="dt">Ok</span> a st&#39;
+  <span class="dt">Error</span> e <span class="ot">-&gt;</span> <span class="dt">Error</span> <span class="fu">$</span> addExpected expected e
+  
+addExpected x (<span class="dt">Expected</span> xs) <span class="fu">=</span> <span class="dt">Expected</span> (x<span class="fu">:</span>xs)
+addExpected x (<span class="dt">UnknownError</span> _) <span class="fu">=</span> <span class="dt">Expected</span> [x]
+addExpected x (<span class="dt">Unexpected</span> _) <span class="fu">=</span> <span class="dt">Expected</span> [x]</code></pre>
+<p>Ćwiczenie: zmodyfikuj swoje rozwiązanie poprzedniego ćwiczenia by działało jak Parsec:</p>
+<pre><code>Prelude Text.Parsec&gt; parse digit &quot;&quot; &quot;&quot;
+Left (line 1, column 1):
+unexpected end of input
+expecting digit</code></pre>
+</div>
+<div class="section slide level1" id="usprawnianie">
+<h1>Usprawnianie</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">gen <span class="dv">0</span> <span class="fu">=</span> <span class="st">&quot;1&quot;</span>
+gen n <span class="fu">=</span> (<span class="ch">&#39;1&#39;</span><span class="fu">:</span><span class="ch">&#39;+&#39;</span><span class="fu">:</span><span class="ch">&#39;1&#39;</span><span class="fu">:</span><span class="ch">&#39;-&#39;</span><span class="fu">:</span>gen (n<span class="fu">-</span><span class="dv">1</span>))
+
+<span class="ot">pNum ::</span> <span class="dt">Parser</span> <span class="dt">Int</span>
+pNum <span class="fu">=</span> <span class="fu">fmap</span> <span class="fu">digitToInt</span> digit
+
+pExp <span class="fu">=</span> pNum <span class="ot">`chainl1`</span> addop
+addop   <span class="fu">=</span>   <span class="kw">do</span>{ char <span class="ch">&#39;+&#39;</span>; <span class="fu">return</span> (<span class="fu">+</span>) }
+          <span class="fu">&lt;|&gt;</span> <span class="kw">do</span>{ char <span class="ch">&#39;-&#39;</span>; <span class="fu">return</span> (<span class="fu">-</span>) }
+
+test n <span class="fu">=</span>  parse pExp <span class="st">&quot;gen&quot;</span> (gen n)</code></pre>
+<p>Parsec jest szybszy niz nasze kombinatory:</p>
+<pre><code>parsec 3:
+benchmarking gen 1e5
+collecting 100 samples, 1 iterations each, in estimated 8.396387 s
+mean: 108.4311 ms, lb 104.1851 ms, ub 112.6549 ms, ci 0.950
+std dev: 21.71925 ms, lb 20.55811 ms, ub 23.11727 ms, ci 0.950
+
+MyParsec2a:
+benchmarking gen 100000
+collecting 100 samples, 1 iterations each, in estimated 13.94670 s
+mean: 138.7350 ms, lb 136.4866 ms, ub 141.5722 ms, ci 0.950</code></pre>
+<p>Szczegóły: pmresults.txt</p>
+</div>
+<div class="section slide level1" id="koszt-alternatywy">
+<h1>Koszt alternatywy</h1>
+<p>Alternatywa jest kosztowna:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">parserPlus p q <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">case</span> runParser p s <span class="kw">of</span>
+  <span class="dt">Error</span> e <span class="ot">-&gt;</span> runParser q s
+  ok <span class="ot">-&gt;</span> ok</code></pre>
+<p>Wejście dla <code>q</code> nie może zostać zwolnione zanim <code>p</code> się nie skończy - potencjalny wyciek pamięci.</p>
+<p>Idea: przy alternatywie <code>p &lt;|&gt; q</code> uzywamy <code>q</code> tylko gdy <code>p</code> zawodzi nie konsumując wejścia.</p>
+<p>Wtedy możemy zwolnić wejście dla <code>q</code>, gdy tylko <code>p</code> skonsumuje choć jeden znak.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Consumed</span> a <span class="fu">=</span> <span class="dt">Consumed</span> (<span class="dt">Reply</span> a)
+                <span class="fu">|</span> <span class="dt">Empty</span> (<span class="dt">Reply</span> a)
+
+<span class="ot">parserPlus ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
+parserPlus p q <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">case</span> runParser p s <span class="kw">of</span>
+  <span class="dt">Empty</span> (<span class="dt">Error</span> e) <span class="ot">-&gt;</span> runParser q s
+  <span class="dt">Empty</span> ok <span class="ot">-&gt;</span> <span class="dt">Empty</span> ok
+  consumed <span class="ot">-&gt;</span> consumed</code></pre>
+</div>
+<div class="section slide level1" id="implementacja">
+<h1>Implementacja</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Code/Parse1/MyParsec2c</span>
+<span class="kw">data</span> <span class="dt">Consumed</span> a <span class="fu">=</span> <span class="dt">Consumed</span> (<span class="dt">Reply</span> a)
+                <span class="fu">|</span> <span class="dt">Empty</span> (<span class="dt">Reply</span> a)
+
+<span class="kw">newtype</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">Parser</span> {<span class="ot"> runParser ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Consumed</span> a }
+
+satisfy p <span class="fu">=</span> <span class="dt">Parser</span> sat&#39; <span class="kw">where</span> 
+  sat&#39; []    <span class="fu">=</span> <span class="dt">Empty</span>(<span class="dt">Error</span> (expected <span class="st">&quot;EOF&quot;</span>)) <span class="co">-- or check (p EOF)</span>
+  sat&#39; (a<span class="fu">:</span>s) <span class="fu">=</span> <span class="kw">if</span> (p a) <span class="kw">then</span> <span class="dt">Consumed</span>(<span class="dt">Ok</span> a s) <span class="kw">else</span> 
+                 <span class="dt">Empty</span>(<span class="dt">Error</span> (unexpected <span class="fu">$</span> <span class="fu">show</span> a) )</code></pre>
+</div>
+<div class="section slide level1" id="sekwencjonowanie">
+<h1>Sekwencjonowanie</h1>
+<p>Clou programu:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Parser</span> <span class="kw">where</span>
+  <span class="fu">return</span> a <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="dt">Empty</span>(<span class="dt">Ok</span> a s)
+  
+  p <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \st <span class="ot">-&gt;</span> <span class="kw">case</span> runParser p st <span class="kw">of</span>
+      <span class="dt">Empty</span> reply <span class="ot">-&gt;</span> <span class="kw">case</span> reply <span class="kw">of</span>
+        <span class="dt">Ok</span> a s&#39; <span class="ot">-&gt;</span> runParser (k a) s&#39;
+        <span class="dt">Error</span> e <span class="ot">-&gt;</span> <span class="dt">Empty</span> <span class="fu">$</span> <span class="dt">Error</span> e
+      <span class="dt">Consumed</span> reply <span class="ot">-&gt;</span> <span class="dt">Consumed</span> (<span class="kw">case</span> reply <span class="kw">of</span>
+        <span class="dt">Ok</span> a s&#39; <span class="ot">-&gt;</span> <span class="kw">case</span> runParser (k a) s&#39; <span class="kw">of</span>
+                      <span class="dt">Empty</span> r <span class="ot">-&gt;</span> r
+                      <span class="dt">Consumed</span> r <span class="ot">-&gt;</span> r
+        <span class="dt">Error</span> e <span class="ot">-&gt;</span> <span class="dt">Error</span> e)</code></pre>
+<p>Jeżeli <code>p</code> konsumuje wejście, to <code>p &gt;&gt;= k</code> obliczy się do <code>Consumed x</code>, a x pozostanie nie obliczone (z uwagi na leniwość!). Operacje <code>Parser/runParser</code> zostaną wyoptymalizowane (uwaga: <code>newtype</code>)</p>
+<p>Zatem <code>(p &gt;&gt; długieobliczenie) &lt;|&gt; q</code> może zwolnić <code>q</code> i wejście dla niego gdy tylko <code>p</code> skonsumuje pierwszy znak, nie czekając aż zakończy się <code>długieobliczenie</code>.</p>
+</div>
+<div class="section slide level1" id="benchmark">
+<h1>Benchmark</h1>
+<pre><code>GHCOPTS=-O -rtsopts
+pm2c +RTS -s -RTS:
+benchmarking gen 100000
+mean: 40.95024 ms, lb 39.81659 ms, ub 42.13325 ms
+   4,815,377,360 bytes allocated in the heap
+   2,136,425,484 bytes copied during GC
+       6,267,672 bytes maximum residency (343 sample(s))
+              21 MB total memory in use (0 MB lost due to fragmentation)
+  MUT     time   11.19s  ( 12.45s elapsed)
+  GC      time    4.36s  (  4.53s elapsed)
+
+pm2a +RTS -s -RTS:
+benchmarking gen 100000
+mean: 141.0365 ms, lb 138.7846 ms, ub 143.5224 ms
+   7,535,812,664 bytes allocated in the heap
+   4,317,341,644 bytes copied during GC
+      16,940,736 bytes maximum residency (301 sample(s))
+              47 MB total memory in use (0 MB lost due to fragmentation)
+  MUT     time   10.31s  ( 11.32s elapsed)
+  GC      time    8.23s  (  8.72s elapsed)</code></pre>
+</div>
+<div class="section slide level1" id="parsec3-kontynuacje">
+<h1>Parsec3: kontynuacje</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Parsec</span> a <span class="fu">=</span> <span class="dt">Parsec</span> {<span class="ot"> unParser ::</span> forall b<span class="fu">.</span>
+                                 <span class="dt">State</span>
+                              <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> b) <span class="co">--  cok</span>
+                              <span class="ot">-&gt;</span> (<span class="dt">ParseError</span> <span class="ot">-&gt;</span> b) <span class="co">--  cerr</span>
+                              <span class="ot">-&gt;</span> b
+                            }
+                    
+item&#39; [] cok cerr <span class="fu">=</span> cerr (unexpected <span class="st">&quot;EOF&quot;</span>)
+item&#39; (x<span class="fu">:</span>xs) cok cerr <span class="fu">=</span> cok x xs
+item <span class="fu">=</span> <span class="dt">Parsec</span> item&#39;
+
+<span class="ot">eof ::</span> a <span class="ot">-&gt;</span> <span class="dt">Parsec</span> a
+eof a <span class="fu">=</span> <span class="dt">Parsec</span> eof&#39; <span class="kw">where</span>
+  eof&#39; [] cok cerr <span class="fu">=</span> cok a []
+  eof&#39; _ cok cerr <span class="fu">=</span> cerr (expected <span class="st">&quot;EOF&quot;</span>)</code></pre>
+</div>
+<div class="section slide level1" id="section">
+<h1></h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Parser</span> <span class="kw">where</span>
+  <span class="fu">return</span> a <span class="fu">=</span> <span class="dt">Parser</span> (pure a) <span class="kw">where</span>
+    pure a s cok _ <span class="fu">=</span> cok a s
+  
+  m <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> <span class="dt">Parser</span> (bind m k) <span class="kw">where</span> 
+    bind (<span class="dt">Parser</span> f) k s cok cerr <span class="fu">=</span> f s mcok cerr <span class="kw">where</span>
+      mcok a s <span class="fu">=</span> runParser (k a) s cok cerr
+      mcerr <span class="fu">=</span> <span class="fu">undefined</span>
+
+<span class="ot">parserPlus ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
+parserPlus p q <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s cok cerr <span class="ot">-&gt;</span> <span class="kw">let</span>
+    pok <span class="fu">=</span> cok
+    perr <span class="fu">=</span> \e <span class="ot">-&gt;</span> runParser q s cok cerr
+ <span class="kw">in</span> runParser p s pok perr </code></pre>
+</div>
+<div class="section slide level1" id="benchmark-1">
+<h1>Benchmark</h1>
+<pre><code>GHCOPTS=-O -rtsopts
+pm2c +RTS -s -RTS:
+benchmarking gen 100000
+mean: 40.95024 ms, lb 39.81659 ms, ub 42.13325 ms
+   4,815,377,360 bytes allocated in the heap
+   2,136,425,484 bytes copied during GC
+       6,267,672 bytes maximum residency (343 sample(s))
+              21 MB total memory in use (0 MB lost due to fragmentation)
+
+pm3a +RTS -s -RTS:
+benchmarking gen 100000
+mean: 35.37689 ms, lb 34.61368 ms, ub 36.20859 ms
+   4,209,433,272 bytes allocated in the heap
+   2,128,069,148 bytes copied during GC
+       6,234,896 bytes maximum residency (309 sample(s))
+              21 MB total memory in use (0 MB lost due to fragmentation)</code></pre>
+</div>
+<div class="section slide level1" id="ćwiczenie">
+<h1>Ćwiczenie</h1>
+<ul>
+<li><p>Ćwiczenie: połączyć pomysły 2c (Empty/Consumed) i 3a (kontynuacje) ewentualnie można jeszcze dołożyć 2b (obsługa błędów).</p></li>
+<li><p>Wskazówka:</p></li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">Parser</span> {<span class="ot">unParser ::</span> forall b <span class="fu">.</span>
+                 <span class="dt">State</span>
+              <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">ParseError</span> <span class="ot">-&gt;</span> b) <span class="co">-- consumed ok</span>
+              <span class="ot">-&gt;</span> (<span class="dt">ParseError</span> <span class="ot">-&gt;</span> b)               <span class="co">-- consumed err</span>
+              <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">ParseError</span> <span class="ot">-&gt;</span> b) <span class="co">-- empty ok</span>
+              <span class="ot">-&gt;</span> (<span class="dt">ParseError</span> <span class="ot">-&gt;</span> b)               <span class="co">-- empty err</span>
+              <span class="ot">-&gt;</span> b
+             }</code></pre>
+</div>
+</body>
+</html>
