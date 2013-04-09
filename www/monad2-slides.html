@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" type="text/css" media="screen, projection, print"
+    href="http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+  <script src="http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz"
+    charset="utf-8" type="text/javascript"></script>
+</head>
+<body>
+<div class="section slide level1" id="continuation-passing-style-cps">
+<h1>Continuation Passing Style (CPS)</h1>
+<p>Z kontynuacjami zetknęliśmy się już przy okazji I/O:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">readFile</span><span class="ot"> ::</span> <span class="dt">Name</span> <span class="ot">-&gt;</span> <span class="dt">FailCont</span> <span class="ot">-&gt;</span> <span class="dt">StrCont</span> <span class="ot">-&gt;</span> <span class="dt">Dialogue</span></code></pre>
+<p>Dowolną funkcję można przerobic na styl kontynuacyjny, np.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+add x y <span class="fu">=</span> x <span class="fu">+</span> y
+
+<span class="ot">add_cps ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+add_cps x y k <span class="fu">=</span>  k (x<span class="fu">+</span>y)
+
+<span class="kw">type</span> <span class="dt">Cont</span> r a <span class="fu">=</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+<span class="ot">add_cps&#39; ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Cont</span> r <span class="dt">Int</span>
+add_cps&#39; <span class="fu">=</span> add_cps</code></pre>
+<pre><code>*Main&gt; add_cps 2 2 id
+4
+*Main&gt; add_cps 2 2 show
+&quot;4&quot;</code></pre>
+</div>
+<div class="section slide level1" id="cps-2">
+<h1>CPS (2)</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">square_cps ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+square_cps x k <span class="fu">=</span> k (square x)
+
+<span class="ot">pythagoras_cps ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+pythagoras_cps x y k <span class="fu">=</span>
+ square_cps x <span class="fu">$</span> \x_squared <span class="ot">-&gt;</span>
+ square_cps y <span class="fu">$</span> \y_squared <span class="ot">-&gt;</span>
+ add_cps x_squared y_squared <span class="fu">$</span> \sum_of_squares <span class="ot">-&gt;</span>
+ k sum_of_squares</code></pre>
+<pre><code>*Main&gt; pythagoras_cps 3 4 id
+25</code></pre>
+</div>
+<div class="section slide level1" id="na-marginesie-transformacja-cps">
+<h1>Na marginesie: transformacja CPS</h1>
+<p><code>T</code> zamienia term typu <code>a</code> na <code>((a-&gt;r)-&gt;r)</code></p>
+<pre><code>
+T(x) = \k -&gt; k x
+T(\x -&gt; M) = \k.k(\x -&gt; T(M))
+T(MN) = \k -&gt; T(M)(\m -&gt; 
+              T(N)(\n -&gt; 
+              mnk))</code></pre>
+</div>
+<div class="section slide level1" id="monada-kontynuacji">
+<h1>Monada kontynuacji</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Cont</span> r a <span class="fu">=</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+<span class="co">-- Związek z logiką:  Cont a ∼ (a → ⊥) → ⊥ = ¬¬a</span>
+
+<span class="ot">contra ::</span> (a<span class="ot">-&gt;</span>b) <span class="ot">-&gt;</span> (b<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>r)
+contra f g <span class="fu">=</span> g <span class="fu">.</span> f
+
+<span class="ot">cmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Cont</span> r a <span class="ot">-&gt;</span> <span class="dt">Cont</span> r b
+<span class="co">--   :: (a -&gt; b) -&gt; ((a -&gt; r) -&gt; r) -&gt;  (b -&gt; r) -&gt; r</span>
+cmap f m <span class="fu">=</span> \c <span class="ot">-&gt;</span> m <span class="fu">$</span> c <span class="fu">.</span> f <span class="co">-- \c -&gt; m (contra f c)</span>
+
+<span class="ot">cpure ::</span> a <span class="ot">-&gt;</span> <span class="dt">Cont</span> r a
+cpure <span class="fu">=</span> <span class="fu">flip</span> (<span class="fu">$</span>) <span class="co">-- \a c -&gt; c a</span>
+
+<span class="ot">cbind ::</span> <span class="dt">Cont</span> r a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">Cont</span> r b) <span class="ot">-&gt;</span> <span class="dt">Cont</span> r b
+<span class="co">-- ((a-&gt;r)-&gt;r)) -&gt; (a -&gt; (b-&gt;r)-&gt;r)</span>
+cbind m k <span class="fu">=</span> \c <span class="ot">-&gt;</span> m (\a <span class="ot">-&gt;</span> k a c)</code></pre>
+<p>Jak zwykle w bibliotece jest to zapakowane w newtype, ale mamy funkcje</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cont ::</span> ((a<span class="ot">-&gt;</span>r)<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> <span class="dt">Cont</span> r a
+<span class="ot">runCont ::</span> <span class="dt">Cont</span> r a <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>r)<span class="ot">-&gt;</span>r</code></pre>
+</div>
+<div class="section slide level1" id="monada-kontynuacji-2">
+<h1>Monada kontynuacji (2)</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Monad.Cont
+
+<span class="ot">add_cont ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Cont</span> r <span class="dt">Int</span>
+add_cont x y <span class="fu">=</span> <span class="fu">return</span> (x<span class="fu">+</span>y)
+
+<span class="ot">square_cont ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Cont</span> r <span class="dt">Int</span>
+square_cont x <span class="fu">=</span> <span class="fu">return</span> (x<span class="fu">*</span>x)
+
+<span class="ot">pythagoras_cont ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Cont</span> r <span class="dt">Int</span>
+pythagoras_cont x y <span class="fu">=</span>
+    <span class="kw">do</span> x_squared <span class="ot">&lt;-</span> square_cont x
+       y_squared <span class="ot">&lt;-</span> square_cont y
+       sum_of_squares <span class="ot">&lt;-</span> add_cont x_squared y_squared
+       <span class="fu">return</span> sum_of_squares</code></pre>
+<pre><code>*Main&gt; runCont (pythagoras_cont 3 4) id
+25</code></pre>
+</div>
+<div class="section slide level1" id="kontynuacje">
+<h1>Kontynuacje</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Monad.Cont
+
+<span class="ot">ex1 ::</span> <span class="dt">Cont</span> r <span class="dt">Int</span>
+ex1 <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+  b <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">10</span>
+  <span class="fu">return</span> (a<span class="fu">+</span>b)
+  
+<span class="co">-- test :: (forall r. (Show r) =&gt; Cont r Int) -&gt; String </span>
+test ex <span class="fu">=</span> runCont ex <span class="fu">show</span></code></pre>
+<pre><code>&gt; test ex1
+&quot;11&quot;</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- cont :: ((a-&gt;r)-&gt;r) -&gt; Cont r a</span>
+<span class="ot">ex2 ::</span> <span class="dt">Cont</span> r <span class="dt">Int</span>
+ex2 <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+  b <span class="ot">&lt;-</span> cont (\c <span class="ot">-&gt;</span> c <span class="dv">10</span>)
+  <span class="fu">return</span> (a<span class="fu">+</span>b)</code></pre>
+<pre><code>&gt; test ex2
+&quot;11&quot;</code></pre>
+</div>
+<div class="section slide level1" id="brak-wyniku---wyjątki">
+<h1>Brak wyniku - wyjątki</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">ex3 <span class="fu">=</span> <span class="kw">do</span>
+   a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+   b <span class="ot">&lt;-</span> cont (\c <span class="ot">-&gt;</span> <span class="st">&quot;escape&quot;</span>)
+   <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b</code></pre>
+<pre><code>&gt; test ex3
+&quot;escape&quot;</code></pre>
+<p>...czyli mamy wyjątki</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">escape ::</span> r <span class="ot">-&gt;</span> <span class="dt">Cont</span> r a
+escape r <span class="fu">=</span> cont (<span class="fu">const</span> r)</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">ex3e <span class="fu">=</span> <span class="kw">do</span>
+   a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+   b <span class="ot">&lt;-</span> escape <span class="st">&quot;escape&quot;</span>
+   <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b</code></pre>
+</div>
+<div class="section slide level1" id="wiele-wyników">
+<h1>Wiele wyników</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">ex4 <span class="fu">=</span> <span class="kw">do</span>
+   a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+   b <span class="ot">&lt;-</span> cont (\c <span class="ot">-&gt;</span> c <span class="dv">10</span> <span class="fu">++</span> c <span class="dv">20</span>)
+   <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b</code></pre>
+<pre><code>&gt; test ex4
+&quot;1121&quot;</code></pre>
+<p>Hmm, to prawie jak monada list:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">test5 <span class="fu">=</span> <span class="kw">do</span> 
+  a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+  b <span class="ot">&lt;-</span> [<span class="dv">10</span>, <span class="dv">20</span>]
+  <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b   </code></pre>
+<pre><code>&gt; test5
+[11,21]</code></pre>
+</div>
+<div class="section slide level1" id="wiele-wyników-2">
+<h1>Wiele wyników (2)</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">ex6 <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+  b <span class="ot">&lt;-</span> <span class="dt">Cont</span> (\c <span class="ot">-&gt;</span> c <span class="dv">10</span> <span class="fu">++</span> c <span class="dv">20</span>)
+  <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b
+
+test6 <span class="fu">=</span> runCont ex6 (\x <span class="ot">-&gt;</span> [x])</code></pre>
+<pre><code>&gt; test6
+[11,21]</code></pre>
+<p>Albo inaczej:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">ex7 <span class="fu">=</span> <span class="kw">do</span>
+   a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+   b <span class="ot">&lt;-</span> cont (\c <span class="ot">-&gt;</span> <span class="fu">concat</span> [c <span class="dv">10</span>, c <span class="dv">20</span>])
+   <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b
+
+test7 <span class="fu">=</span> runCont ex7 (\x <span class="ot">-&gt;</span> [x])
+
+ex8 <span class="fu">=</span> <span class="kw">do</span>
+  a <span class="ot">&lt;-</span> <span class="fu">return</span> <span class="dv">1</span>
+  b <span class="ot">&lt;-</span> cont (\c <span class="ot">-&gt;</span> [<span class="dv">10</span>,<span class="dv">20</span>] <span class="fu">&gt;&gt;=</span> c)
+  <span class="fu">return</span> <span class="fu">$</span> a<span class="fu">+</span>b
+
+test8 <span class="fu">=</span> runCont ex8 <span class="fu">return</span></code></pre>
+</div>
+<div class="section slide level1" id="ćwiczenie---kontynuacje-a-stan">
+<h1>Ćwiczenie - kontynuacje a stan</h1>
+<pre><code>Stan:
+ s -&gt; (a,s)
+
+CPS:   s -&gt; ((a,s) -&gt; r) -&gt; r
+curry: s -&gt; (a -&gt; s -&gt; r) -&gt; r
+flip:  (a -&gt; s -&gt; r) -&gt; s -&gt; r</code></pre>
+<p>Zdefiniuj</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">CS</span> s a r <span class="fu">=</span> (a <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> s <span class="ot">-&gt;</span> r
+<span class="co">-- Odpowiednik Functor</span>
+<span class="ot">csmap ::</span> (a<span class="ot">-&gt;</span>b) <span class="ot">-&gt;</span> <span class="dt">CS</span> s a r <span class="ot">-&gt;</span> <span class="dt">CS</span> s b r
+
+<span class="co">-- Odpowiednik Monad</span>
+<span class="ot">cspure ::</span> a <span class="ot">-&gt;</span> <span class="dt">CS</span> s a r
+<span class="ot">csbind ::</span> <span class="dt">CS</span> s a r <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">CS</span> s b r) <span class="ot">-&gt;</span> <span class="dt">CS</span> s b r
+
+foo <span class="fu">=</span> csmap (<span class="fu">+</span><span class="dv">1</span>) (cspure <span class="dv">41</span>)</code></pre>
+<p>i sprawdź, że działa:</p>
+<pre><code>&gt;&gt;&gt; foo (\a s -&gt; show a) 17
+&quot;42&quot;</code></pre>
+</div>
+<div class="section slide level1" id="ćwiczenie---kontynuacje-a-stan-2">
+<h1>Ćwiczenie - kontynuacje a stan (2)</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Odpowiednik MonadState</span>
+<span class="co">-- get :: MonadState s m =&gt; m s</span>
+<span class="ot">csget ::</span> <span class="dt">CS</span> s s r
+
+<span class="co">-- put :: MonadState s m =&gt; s -&gt; m ()</span>
+<span class="ot">csput ::</span> s <span class="ot">-&gt;</span> <span class="dt">CS</span> s () r
+
+<span class="ot">csmodify ::</span> (s<span class="ot">-&gt;</span>s) <span class="ot">-&gt;</span> <span class="dt">CS</span> s () r
+csmodify t <span class="fu">=</span> csget <span class="ot">`csbind`</span> (\s <span class="ot">-&gt;</span> csput (t s))
+
+<span class="ot">cstick ::</span> <span class="dt">CS</span> <span class="dt">Int</span> () r
+cstick <span class="fu">=</span> csmodify (<span class="fu">+</span><span class="dv">1</span>)
+
+<span class="ot">bar ::</span> <span class="dt">CS</span> <span class="dt">Int</span> <span class="dt">Int</span> r
+bar <span class="fu">=</span> csput <span class="dv">40</span> <span class="ot">`csthen`</span> cstick <span class="ot">`csthen`</span> cstick <span class="ot">`csthen`</span> csget</code></pre>
+<p>...i sprawdź, że działa:</p>
+<pre><code>*Main&gt; bar const 0
+42</code></pre>
+<p>Uwaga:</p>
+<ul>
+<li>nie importuj Control.Monad.State</li>
+<li>nie zaglądaj do jego źródeł</li>
+</ul>
+</div>
+<div class="section slide level1" id="ćwiczenie---kontynuacje-a-stan-3">
+<h1>Ćwiczenie - kontynuacje a stan (3)</h1>
+<p>Zdefiniuj monadę stanu przy pomocy Cont:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE TypeSynonymInstances,FlexibleInstances, MultiParamTypeClasses #-}</span>
+<span class="kw">import</span> Control.Monad.Cont
+<span class="co">-- Uwaga: nie importujemy Control.Monad.State</span>
+<span class="kw">class</span> (<span class="kw">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadState</span> s m <span class="fu">|</span> m <span class="ot">-&gt;</span> s <span class="kw">where</span>
+<span class="ot">    get ::</span> m s
+<span class="ot">    put ::</span> s <span class="ot">-&gt;</span> m ()
+<span class="ot">modify ::</span> (<span class="dt">MonadState</span> s m) <span class="ot">=&gt;</span> (s <span class="ot">-&gt;</span> s) <span class="ot">-&gt;</span> m ()
+modify f <span class="fu">=</span> <span class="kw">do</span> { s <span class="ot">&lt;-</span> get; put (f s) }
+
+<span class="co">-- w miejsce X wstaw wyrażenie używające Cont, s, r</span>
+<span class="kw">type</span> <span class="dt">CSM</span> s r a <span class="fu">=</span> <span class="dt">X</span> a 
+
+<span class="kw">instance</span> <span class="dt">MonadState</span> s <span class="dt">X</span> <span class="kw">where</span>
+<span class="fu">...</span>
+<span class="co">-- Wskazówka: cont :: ((a-&gt;s-&gt;r)-&gt;s -&gt; r) -&gt; Cont (s-&gt;r) a</span>
+  
+<span class="ot">tick ::</span> <span class="dt">CSM</span> <span class="dt">Int</span> r <span class="dt">Int</span>
+tick <span class="fu">=</span> modify (<span class="fu">+</span><span class="dv">1</span>)
+
+<span class="ot">baz ::</span> <span class="dt">CSM</span> <span class="dt">Int</span> r <span class="dt">Int</span>
+baz <span class="fu">=</span> <span class="kw">do</span> { put <span class="dv">40</span>; tick; tick; get }</code></pre>
+<p>...i sprawdź, że działa:</p>
+<pre><code>*Main&gt; runCont baz const 0
+42</code></pre>
+</div>
+<div class="section slide level1" id="ćwiczenie-kontynuacje-a-błędy">
+<h1>Ćwiczenie: kontynuacje a błędy</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">{-</span>
+<span class="co">Error: (a + e)</span>
+<span class="co">CPS: ((a + e) -&gt; r) -&gt; r</span>
+<span class="co">de Morgan: (a -&gt;r,e -&gt; r) -&gt; r</span>
+<span class="co">curry: (a-&gt;r) -&gt; (e-&gt;r) -&gt; r</span>
+<span class="co">-}</span>
+
+<span class="kw">type</span> <span class="dt">CE</span> e a r <span class="fu">=</span> (e<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> r
+<span class="ot">cemap ::</span> (a<span class="ot">-&gt;</span>b) <span class="ot">-&gt;</span> <span class="dt">CE</span> e a r <span class="ot">-&gt;</span> <span class="dt">CE</span> e b r
+<span class="ot">cepure ::</span> a <span class="ot">-&gt;</span> <span class="dt">CE</span> e a r
+<span class="ot">cebind ::</span> <span class="dt">CE</span> e a r <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">CE</span> e b r) <span class="ot">-&gt;</span> <span class="dt">CE</span> e b r
+
+<span class="ot">throwCE ::</span> e <span class="ot">-&gt;</span> <span class="dt">CE</span> e a r
+<span class="ot">catchCE ::</span> <span class="dt">CE</span> e a r <span class="ot">-&gt;</span> (e <span class="ot">-&gt;</span> <span class="dt">CE</span> e a r) <span class="ot">-&gt;</span> <span class="dt">CE</span> e a r
+
+<span class="ot">uncurryCE ::</span> ((e<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> ((e <span class="ot">-&gt;</span>r,a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r)
+<span class="co">-- Prelude.either :: (e-&gt;r) -&gt; (a-&gt;r) -&gt; Either e a -&gt;r</span>
+<span class="co">-- ~ ((e-&gt;r), (a-&gt;r)) -&gt; Either e a -&gt;r</span>
+<span class="ot">coeither ::</span> (<span class="dt">Either</span> e a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (e <span class="ot">-&gt;</span>r, a <span class="ot">-&gt;</span> r)
+<span class="ot">morgan1 ::</span> ((e <span class="ot">-&gt;</span>r,a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (<span class="dt">Either</span> e a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+<span class="ot">morgan2 ::</span> ((<span class="dt">Either</span> e a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (e <span class="ot">-&gt;</span> r, a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+
+<span class="co">-- te funkcje ustanawiaja izomorfizm</span>
+<span class="ot">iso1 ::</span> ((e<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>r) <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> ((<span class="dt">Either</span> e a) <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span>r
+<span class="ot">iso2 ::</span> ((<span class="dt">Either</span> e a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (e <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> r
+
+
+<span class="kw">newtype</span> <span class="dt">CEM</span> e r a <span class="fu">=</span> <span class="dt">CEM</span> {<span class="ot"> runCEM ::</span> <span class="dt">Cont</span> r (<span class="dt">Either</span> e a) }
+<span class="ot">toCEM ::</span> <span class="dt">CE</span> e a r <span class="ot">-&gt;</span> <span class="dt">CEM</span> e r a
+<span class="ot">fromCEM ::</span> <span class="dt">CEM</span> e r a <span class="ot">-&gt;</span> <span class="dt">CE</span> e a r
+
+<span class="kw">instance</span> <span class="kw">Monad</span> (<span class="dt">CEM</span> e r) <span class="kw">where</span> <span class="fu">...</span>  
+<span class="kw">instance</span> (<span class="dt">Error</span> e) <span class="ot">=&gt;</span> <span class="dt">MonadError</span> e (<span class="dt">CEM</span> e r) <span class="kw">where</span><span class="fu">...</span></code></pre>
+</div>
+<div class="section slide level1" id="monada-wolna">
+<h1>Monada wolna</h1>
+<p>Dla każdego funktora możemy zdefiniować monadę:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Free</span> f a <span class="fu">=</span> <span class="dt">Pure</span> a <span class="fu">|</span> <span class="dt">In</span> (f (<span class="dt">Free</span> f a))
+
+<span class="kw">instance</span> <span class="kw">Functor</span> f <span class="ot">=&gt;</span> <span class="kw">Functor</span> (<span class="dt">Free</span> f) <span class="kw">where</span>
+   <span class="fu">fmap</span> f (<span class="dt">Pure</span> a) <span class="fu">=</span> <span class="dt">Pure</span> (f a)
+   <span class="fu">fmap</span> f (<span class="dt">In</span> as) <span class="fu">=</span> <span class="dt">In</span> (<span class="fu">fmap</span> (<span class="fu">fmap</span> f) as)
+ 
+<span class="kw">instance</span> <span class="kw">Functor</span> f <span class="ot">=&gt;</span> <span class="kw">Monad</span> (<span class="dt">Free</span> f) <span class="kw">where</span>
+   <span class="fu">return</span> <span class="fu">=</span> <span class="dt">Pure</span>
+   <span class="dt">Pure</span> a <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> f a <span class="co">-- pierwsze prawo</span>
+   <span class="dt">In</span>  as <span class="fu">&gt;&gt;=</span> f <span class="fu">=</span> <span class="dt">In</span> (<span class="fu">fmap</span> (<span class="fu">&gt;&gt;=</span> f) as)</code></pre>
+<p>W literaturze <code>In</code> nazywa się też <code>Free</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Free</span> f a <span class="fu">=</span> <span class="dt">Pure</span> a <span class="fu">|</span> <span class="dt">Free</span> (f (<span class="dt">Free</span> f a))</code></pre>
+</div>
+<div class="section slide level1" id="przykład">
+<h1>Przykład</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Monad.Free
+<span class="kw">import</span> System.Exit <span class="kw">hiding</span> (ExitSuccess)
+
+<span class="kw">data</span> <span class="dt">TeletypeF</span> x
+  <span class="fu">=</span> <span class="dt">PutStrLn</span> <span class="dt">String</span> x
+  <span class="fu">|</span> <span class="dt">GetLine</span> (<span class="dt">String</span> <span class="ot">-&gt;</span> x)
+  <span class="fu">|</span> <span class="dt">ExitSuccess</span>
+
+<span class="kw">instance</span> <span class="kw">Functor</span> <span class="dt">TeletypeF</span> <span class="kw">where</span>
+    <span class="fu">fmap</span> f (<span class="dt">PutStrLn</span> str x) <span class="fu">=</span> <span class="dt">PutStrLn</span> str (f x)
+    <span class="fu">fmap</span> f (<span class="dt">GetLine</span>      k) <span class="fu">=</span> <span class="dt">GetLine</span> (f <span class="fu">.</span> k)
+    <span class="fu">fmap</span> f  <span class="dt">ExitSuccess</span>     <span class="fu">=</span> <span class="dt">ExitSuccess</span></code></pre>
+</div>
+<div class="section slide level1" id="przykład-c.d.">
+<h1>Przykład c.d.</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Teletype</span> <span class="fu">=</span> <span class="dt">Free</span> <span class="dt">TeletypeF</span>
+
+<span class="ot">putStrLn&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Teletype</span> ()
+putStrLn&#39; str <span class="fu">=</span> liftF <span class="fu">$</span> <span class="dt">PutStrLn</span> str ()
+
+<span class="ot">getLine&#39; ::</span> <span class="dt">Teletype</span> <span class="dt">String</span>
+getLine&#39; <span class="fu">=</span> liftF <span class="fu">$</span> <span class="dt">GetLine</span> <span class="fu">id</span>
+
+<span class="ot">exitSuccess&#39; ::</span> <span class="dt">Teletype</span> r
+exitSuccess&#39; <span class="fu">=</span> liftF <span class="dt">ExitSuccess</span>
+
+<span class="ot">run ::</span> <span class="dt">Teletype</span> r <span class="ot">-&gt;</span> <span class="dt">IO</span> r
+run (<span class="dt">Pure</span> r) <span class="fu">=</span> <span class="fu">return</span> r
+run (<span class="dt">Free</span> (<span class="dt">PutStrLn</span> str t)) <span class="fu">=</span> <span class="fu">putStrLn</span> str <span class="fu">&gt;&gt;</span>  run t
+run (<span class="dt">Free</span> (<span class="dt">GetLine</span>  f    )) <span class="fu">=</span> <span class="fu">getLine</span>      <span class="fu">&gt;&gt;=</span> run <span class="fu">.</span> f
+run (<span class="dt">Free</span>  <span class="dt">ExitSuccess</span>    ) <span class="fu">=</span> exitSuccess
+
+<span class="ot">echo ::</span> <span class="dt">Teletype</span> ()
+echo <span class="fu">=</span> <span class="kw">do</span> str <span class="ot">&lt;-</span> getLine&#39;
+          putStrLn&#39; str
+          exitSuccess&#39;
+          putStrLn&#39; <span class="st">&quot;Finished&quot;</span>
+
+main <span class="fu">=</span> run echo</code></pre>
+</div>
+</body>
+</html>

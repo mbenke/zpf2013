@@ -79,11 +79,12 @@ f &gt;=&gt; g     = \x -&gt; (f x &gt;&gt;= g)
 </div>
 <div class="section slide level1" id="inna-prezentacja-monad">
 <h1>Inna prezentacja monad</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Monad&#39;</span> m <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Pointed</span> m <span class="kw">where</span>
 <span class="ot">   pure  ::</span>  a <span class="ot">-&gt;</span> m a
 <span class="co">-- fmap  :: (a -&gt; b) -&gt; m a -&gt; m b</span>
 <span class="co">-- fmap g . pure === pure . g</span>
 
+<span class="kw">class</span> <span class="kw">Functor</span> m <span class="ot">=&gt;</span> <span class="dt">Monad&#39;</span> m <span class="kw">where</span>
 <span class="ot">  join ::</span> m (m a) <span class="ot">-&gt;</span> m a
 <span class="co">-- join . fmap pure === id === join . pure</span>
 <span class="co">-- join . fmap join === join . join</span></code></pre>
@@ -98,9 +99,6 @@ f &gt;=&gt; g     = \x -&gt; (f x &gt;&gt;= g)
   <span class="co">-- fmap :: (a -&gt; b) -&gt; W a -&gt; W b</span>
   <span class="fu">fmap</span> f (<span class="dt">W</span> a) <span class="fu">=</span> <span class="dt">W</span> (f a)
 
-<span class="kw">class</span> <span class="dt">Pointed</span> f <span class="kw">where</span>
-<span class="ot">  pure ::</span> a <span class="ot">-&gt;</span> f a
-  
 <span class="kw">instance</span> <span class="dt">Pointed</span> <span class="dt">W</span> <span class="kw">where</span>
   pure <span class="fu">=</span> <span class="dt">W</span>
   
@@ -298,6 +296,10 @@ wheree <span class="fu">=</span> (<span class="fu">.</span>) <span class="co">--
 <h1>Czytelnik (3)</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">E</span> <span class="fu">=</span> <span class="dt">Name</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
 <span class="kw">type</span> <span class="dt">Name</span> <span class="fu">=</span> <span class="dt">String</span>
+
+<span class="ot">ext ::</span> <span class="dt">Name</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">E</span> <span class="ot">-&gt;</span> <span class="dt">E</span>
+ext n1 v e n2 <span class="fu">|</span> n1 <span class="fu">==</span> n2  <span class="fu">=</span> v 
+              <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> e n2
 
 <span class="kw">data</span> <span class="dt">Exp</span> <span class="fu">=</span> <span class="dt">EC</span> <span class="dt">Int</span> 
          <span class="fu">|</span> <span class="dt">EV</span> <span class="dt">Name</span>
