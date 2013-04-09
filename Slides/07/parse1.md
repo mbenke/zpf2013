@@ -338,7 +338,7 @@ test n =  parse pExp "gen" (gen n)
 
 # 2012: GHC 7.2
 
-Parsec jest szybszy niz nasze kombinatory:
+Parsec jest szybszy niż nasze kombinatory:
 
 ~~~~
 parsec 3:
@@ -350,7 +350,7 @@ benchmarking gen 1e5
 mean: 138.7350 ms
 ~~~~
 
-Szczegóły: pmresults.txt
+Szczegóły: pmresults72.txt
 
 # Koszt alternatywy
 
@@ -366,14 +366,24 @@ parserPlus p q = Parser $ \s -> case runParser p s of
 Wejście dla `q` nie może zostać zwolnione zanim `p` się nie skończy -
 potencjalny wyciek pamięci.
 
-Idea: przy alternatywie `p <|> q` uzywamy `q` tylko gdy `p` zawodzi 
+Idea: przy alternatywie `p <|> q` używamy `q` tylko gdy `p` zawodzi 
 nie konsumując wejścia. 
 
 Wtedy możemy zwolnić wejście dla `q`, gdy tylko `p` skonsumuje choć jeden znak.
 
+To działa dobrze jeśli p i q nie mają wspólnych prefiksów.
+
+
+# Lepsza alternatywa
+
+Idea: przy alternatywie `p <|> q` używamy `q` tylko gdy `p` zawodzi 
+nie konsumując wejścia. 
+
 ~~~~ {.haskell}
 data Consumed a = Consumed (Reply a)
                 | Empty (Reply a)
+
+newtype Parser a = Parser { runParser :: State -> Consumed a }
 
 parserPlus :: Parser a -> Parser a -> Parser a
 parserPlus p q = Parser $ \s -> case runParser p s of

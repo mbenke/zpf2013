@@ -301,7 +301,7 @@ test n <span class="fu">=</span>  parse pExp <span class="st">&quot;gen&quot;</s
 </div>
 <div class="section slide level1" id="ghc-7.2">
 <h1>2012: GHC 7.2</h1>
-<p>Parsec jest szybszy niz nasze kombinatory:</p>
+<p>Parsec jest szybszy niż nasze kombinatory:</p>
 <pre><code>parsec 3:
 benchmarking gen 1e5
 mean: 108.4311 ms
@@ -309,7 +309,7 @@ mean: 108.4311 ms
 MyParsec2a:
 benchmarking gen 1e5
 mean: 138.7350 ms</code></pre>
-<p>Szczegóły: pmresults.txt</p>
+<p>Szczegóły: pmresults72.txt</p>
 </div>
 <div class="section slide level1" id="koszt-alternatywy">
 <h1>Koszt alternatywy</h1>
@@ -318,10 +318,17 @@ mean: 138.7350 ms</code></pre>
   <span class="dt">Error</span> e <span class="ot">-&gt;</span> runParser q s
   ok <span class="ot">-&gt;</span> ok</code></pre>
 <p>Wejście dla <code>q</code> nie może zostać zwolnione zanim <code>p</code> się nie skończy - potencjalny wyciek pamięci.</p>
-<p>Idea: przy alternatywie <code>p &lt;|&gt; q</code> uzywamy <code>q</code> tylko gdy <code>p</code> zawodzi nie konsumując wejścia.</p>
+<p>Idea: przy alternatywie <code>p &lt;|&gt; q</code> używamy <code>q</code> tylko gdy <code>p</code> zawodzi nie konsumując wejścia.</p>
 <p>Wtedy możemy zwolnić wejście dla <code>q</code>, gdy tylko <code>p</code> skonsumuje choć jeden znak.</p>
+<p>To działa dobrze jeśli p i q nie mają wspólnych prefiksów.</p>
+</div>
+<div class="section slide level1" id="lepsza-alternatywa">
+<h1>Lepsza alternatywa</h1>
+<p>Idea: przy alternatywie <code>p &lt;|&gt; q</code> używamy <code>q</code> tylko gdy <code>p</code> zawodzi nie konsumując wejścia.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Consumed</span> a <span class="fu">=</span> <span class="dt">Consumed</span> (<span class="dt">Reply</span> a)
                 <span class="fu">|</span> <span class="dt">Empty</span> (<span class="dt">Reply</span> a)
+
+<span class="kw">newtype</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">Parser</span> {<span class="ot"> runParser ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Consumed</span> a }
 
 <span class="ot">parserPlus ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
 parserPlus p q <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s <span class="ot">-&gt;</span> <span class="kw">case</span> runParser p s <span class="kw">of</span>
