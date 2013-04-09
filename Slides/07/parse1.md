@@ -458,7 +458,7 @@ mean: 141.0365 ms, lb 138.7846 ms, ub 143.5224 ms
 # Parsec3: kontynuacje
 
 ~~~~ {.haskell}
-newtype Parsec a = Parsec { unParser :: forall b.
+newtype Parser a = Parser { runParser :: forall b.
                                  State
                               -> (a -> State -> b) --  cok
                               -> (ParseError -> b) --  cerr
@@ -467,10 +467,10 @@ newtype Parsec a = Parsec { unParser :: forall b.
                     
 item' [] cok cerr = cerr (unexpected "EOF")
 item' (x:xs) cok cerr = cok x xs
-item = Parsec item'
+item = Parser item'
 
-eof :: a -> Parsec a
-eof a = Parsec eof' where
+eof :: a -> Parser a
+eof a = Parser eof' where
   eof' [] cok cerr = cok a []
   eof' _ cok cerr = cerr (expected "EOF")
 ~~~~
