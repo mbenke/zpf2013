@@ -49,9 +49,9 @@ instance Monad Parser where
     pure a s cok _ = cok a s
   
   m >>= k = Parser (bind m k) where 
-    bind (Parser f) k s cok cerr = f s mcok cerr where
-      mcok a s = runParser (k a) s cok cerr
-      mcerr = undefined
+    bind (Parser f) k s cok cerr = f s mcok mcerr where
+      mcok a s' = runParser (k a) s' cok cerr
+      mcerr = cerr
 
 instance Functor Parser where
   fmap f p = do { x <- p; return (f x) }

@@ -392,7 +392,7 @@ mean: 141.0365 ms, lb 138.7846 ms, ub 143.5224 ms
 </div>
 <div class="section slide level1" id="parsec3-kontynuacje">
 <h1>Parsec3: kontynuacje</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Parsec</span> a <span class="fu">=</span> <span class="dt">Parsec</span> {<span class="ot"> unParser ::</span> forall b<span class="fu">.</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Parser</span> a <span class="fu">=</span> <span class="dt">Parser</span> {<span class="ot"> runParser ::</span> forall b<span class="fu">.</span>
                                  <span class="dt">State</span>
                               <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> b) <span class="co">--  cok</span>
                               <span class="ot">-&gt;</span> (<span class="dt">ParseError</span> <span class="ot">-&gt;</span> b) <span class="co">--  cerr</span>
@@ -401,23 +401,23 @@ mean: 141.0365 ms, lb 138.7846 ms, ub 143.5224 ms
                     
 item&#39; [] cok cerr <span class="fu">=</span> cerr (unexpected <span class="st">&quot;EOF&quot;</span>)
 item&#39; (x<span class="fu">:</span>xs) cok cerr <span class="fu">=</span> cok x xs
-item <span class="fu">=</span> <span class="dt">Parsec</span> item&#39;
+item <span class="fu">=</span> <span class="dt">Parser</span> item&#39;
 
-<span class="ot">eof ::</span> a <span class="ot">-&gt;</span> <span class="dt">Parsec</span> a
-eof a <span class="fu">=</span> <span class="dt">Parsec</span> eof&#39; <span class="kw">where</span>
+<span class="ot">eof ::</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
+eof a <span class="fu">=</span> <span class="dt">Parser</span> eof&#39; <span class="kw">where</span>
   eof&#39; [] cok cerr <span class="fu">=</span> cok a []
   eof&#39; _ cok cerr <span class="fu">=</span> cerr (expected <span class="st">&quot;EOF&quot;</span>)</code></pre>
 </div>
-<div class="section slide level1" id="section">
-<h1></h1>
+<div class="section slide level1" id="look-ma-no-case">
+<h1>Look Ma, no case!</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Parser</span> <span class="kw">where</span>
   <span class="fu">return</span> a <span class="fu">=</span> <span class="dt">Parser</span> (pure a) <span class="kw">where</span>
     pure a s cok _ <span class="fu">=</span> cok a s
   
   m <span class="fu">&gt;&gt;=</span> k <span class="fu">=</span> <span class="dt">Parser</span> (bind m k) <span class="kw">where</span> 
-    bind (<span class="dt">Parser</span> f) k s cok cerr <span class="fu">=</span> f s mcok cerr <span class="kw">where</span>
-      mcok a s <span class="fu">=</span> runParser (k a) s cok cerr
-      mcerr <span class="fu">=</span> <span class="fu">undefined</span>
+    bind (<span class="dt">Parser</span> f) k s cok cerr <span class="fu">=</span> f s mcok mcerr <span class="kw">where</span>
+      mcok a s&#39; <span class="fu">=</span> runParser (k a) s&#39; cok cerr
+      mcerr <span class="fu">=</span> cerr
 
 <span class="ot">parserPlus ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> a
 parserPlus p q <span class="fu">=</span> <span class="dt">Parser</span> <span class="fu">$</span> \s cok cerr <span class="ot">-&gt;</span> <span class="kw">let</span>
