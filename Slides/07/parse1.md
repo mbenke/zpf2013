@@ -494,6 +494,8 @@ parserPlus p q = Parser $ \s cok cerr -> let
  in runParser p s pok perr 
 ~~~~
 
+Nie ma case - lepsze lenistwo
+
 # Benchmark
 
 ~~~~
