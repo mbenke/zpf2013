@@ -20,7 +20,8 @@ quoteExprExp s = do
   exp <- parseExp pos s
   dataToExpQ (const Nothing) exp
 -- dataToExpQ :: Data a => (forall b. Data b => b -> Maybe (Q Exp)) -> a -> Q Exp
-
+  
+quoteExprPat :: String -> TH.Q TH.Pat
 quoteExprPat s = do
   pos <- getPosition
   exp <- parseExp pos s

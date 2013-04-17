@@ -16,12 +16,18 @@ data Exp = EInt Int
            deriving(Show,Typeable,Data)
                    
 pExp :: Parser Exp
--- /show
 pExp = pTerm `chainl1` spaced addop
 
 pTerm = spaced pFactor `chainl1` spaced mulop
-
 pFactor = pNum <|> pMetaVar
+
+pMetaVar = char '$' >> EMetaVar <$> ident
+-- /show
+
+small   = lower <|> char '_'
+large   = upper
+idchar  = small <|> large <|> digit <|> char '\''
+ident = do { c <- small; cs <- many idchar; return (c:cs) }
 
 addop :: Parser (Exp->Exp->Exp)
 addop = fmap (const EAdd) (char '+')
@@ -33,12 +39,6 @@ mulop = pOps [EMul,EDiv] ['*','/']
 pNum :: Parser Exp
 pNum = fmap (EInt . digitToInt) digit
 
-pMetaVar = char '$' >> EMetaVar <$> ident
-
-small   = lower <|> char '_'
-large   = upper
-idchar  = small <|> large <|> digit <|> char '\''
-ident = do { c <- small; cs <- many idchar; return (c:cs) }
 
 pOps :: [a] -> [Char] -> Parser a
 pOps fs cs = foldr1 (<|>) $ map pOp $ zip fs cs

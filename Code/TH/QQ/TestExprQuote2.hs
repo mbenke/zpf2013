@@ -14,3 +14,10 @@ eval [expr| $a * $b|] = eval a * eval b
 eval (EInt n) = n
 
 test = eval [expr| 2+2 |]
+
+{-
+twice :: Exp -> Exp
+twice e = [expr| $e + $e |]
+
+testTwice = twice [expr| 3 * 3|]
+-}
