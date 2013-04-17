@@ -4,7 +4,7 @@
 
 # Metaprogramowanie
 
-* [Template Haskell](https://www.fpcomplete.com/content#/tutorial/template-haskell-101)  
+* [Template Haskell](https://www.fpcomplete.com/user/marcin/template-haskell-101)  
 
 * Code/TH/Projections
 
