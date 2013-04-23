@@ -489,6 +489,29 @@ condEven = condMap6 even (+1)
 -- Ok [3,5,7]
 ~~~~
 
+# Składanie funktorów
+
+~~~~ {.haskell}
+{-# LANGUAGE ScopedTypeVariables, TypeOperators #-}
+
+gfmap :: forall f g a b. (Functor g, Functor f) 
+         => (a -> b) -> g(f(a)) -> g(f(b))
+gfmap fun a = mapG (mapF fun) a where
+  mapF :: (a -> b) -> f a -> f b
+  mapG :: (f a -> f b) -> g (f a) -> g (f b)
+  mapF = fmap
+  mapG = fmap 
+~~~~
+
+~~~~ {.haskell}
+-- g :: * -> *,  f :: * -> * => g :. f :: * -> *
+newtype (g :. f) a = O { unO :: (g (f a)) }
+
+instance (Functor g, Functor f) => Functor (g :. f) where
+--  fmap fun (O gfa) = O $ fmap (fmap fun) $ gfa
+  fmap fun (O gfa) = O $ (fun <$>) <$> gfa
+~~~~
+
 # Składanie idiomów
 
 Składanie monad jest trudne (i nie zawsze możliwe). 
@@ -500,10 +523,18 @@ Składanie idiomów jest łatwe (no, prawie)
 newtype (g :. f) a = O { unO :: (g (f a)) }
 
 instance (Applicative g, Applicative f) => Applicative (g :. f) where
+  -- pure :: a -> (g :. f) a 
+  --      ~~ a -> g (f a) 
   pure  = O . pure . pure
+  
+  -- (<*>) :: (g :. f) (a -> b) -> (g :. f) a -> (g:. f b)
+  --       ~~ g(f(a ->b)) -> g(f(a)) -> g(f(b))
   O gs <*> O xs = -- O (| (<*>) gs xs |) 
                   O ( (<*>) <$> gs <*> xs)
 ~~~~
+
+<!--
+# Ćwiczenie
 
 **Ćwiczenie:** zdefiniować
 
@@ -512,6 +543,7 @@ instance (Functor g, Functor f) => Functor (g :. f) where ...
 ~~~~
 
 i sprawdzić, że złożenie funktorów aplikatywnych spełnia prawa dla funktora aplikatywnego.
+-->
 
 # Kategoryjnie: strong lax monoidal functor
 
@@ -579,7 +611,7 @@ class Monad m => MonadPlus m where
 -- v >> mzero   =  mzero
 ~~~~
 
-** Ćwiczenie: ** napisz parser dla wyrażeń arytmetycznych, uzywając tylko idiomów (bez `do` i bez `>>=`)
+**Ćwiczenie:** napisz parser dla wyrażeń arytmetycznych, uzywając tylko idiomów (bez `do` i bez `>>=`)
 
 # Koniec
 
