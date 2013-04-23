@@ -243,7 +243,7 @@ test4b <span class="fu">=</span> testP p4 <span class="st">&quot;x&quot;</span>
 <li>czego oczekiwano...</li>
 </ul>
 <p>Dla zrealizowania pierwszego postulatu, stan musi przechowywać bieżącą pozycję, np.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">State</span> <span class="fu">=</span> <span class="dt">State</span> {<span class="ot">stPos ::</span> <span class="dt">Pos</span>,<span class="ot"> stInput ::</span> <span class="dt">String</span>}</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">State</span> <span class="fu">=</span> <span class="dt">State</span> {<span class="ot">stPos ::</span> <span class="dt">Pos</span>,<span class="ot"> stInput ::</span> <span class="dt">String</span>}</code></pre>
 <ul>
 <li>Ćwiczenie: zmodyfikuj MyParsec2a tak, aby przechowywał i raportował pozycje błędów.</li>
 </ul>
@@ -424,6 +424,7 @@ parserPlus p q <span class="fu">=</span> <span class="dt">Parser</span> <span cl
     pok <span class="fu">=</span> cok
     perr <span class="fu">=</span> \e <span class="ot">-&gt;</span> runParser q s cok cerr
  <span class="kw">in</span> runParser p s pok perr </code></pre>
+<p>Nie ma case - lepsze lenistwo</p>
 </div>
 <div class="section slide level1" id="benchmark-1">
 <h1>Benchmark</h1>
