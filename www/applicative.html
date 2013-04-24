@@ -197,6 +197,30 @@ transpose3 (xs <span class="fu">:</span>xss) <span class="fu">=</span> (<span cl
 eval3 (<span class="dt">Var</span> x) <span class="fu">=</span> fetch x
 eval3 (<span class="dt">Val</span> i) <span class="fu">=</span> pure i
 eval3 (<span class="dt">Add</span> p q) <span class="fu">=</span> pure (<span class="fu">+</span>) <span class="fu">&lt;*&gt;</span> eval3 p <span class="fu">&lt;*&gt;</span> eval3 q</code></pre>
+<h1 id="sequence-transpose">sequence = transpose ?</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">sequence3 [] <span class="fu">=</span> pure []
+sequence3 (c<span class="fu">:</span>cs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> c <span class="fu">&lt;*&gt;</span> sequence3 cs
+  
+transpose3 [] <span class="fu">=</span> pure []
+transpose3 (xs <span class="fu">:</span>xss) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> xs <span class="fu">&lt;*&gt;</span> transpose3 xss</code></pre>
+<p>To jest ta sama funkcja:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dist ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> [f a] <span class="ot">=&gt;</span> f [a]
+dist []     <span class="fu">=</span> pure []
+dist (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> x <span class="fu">&lt;*&gt;</span> dist xs</code></pre>
+<h1 id="funkcyjny-iterator">Funkcyjny iterator</h1>
+<p><code>dist</code> może być uzyte w połączeniu z <code>map</code> np</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">flakyMap ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> [b]
+flakyMap m as <span class="fu">=</span> dist (<span class="fu">map</span> m as)</code></pre>
+<p>...ale tu przechodzimy listę dwa razy, a wystarczy raz:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">traverseL ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> f [b]
+traverseL f []     <span class="fu">=</span> pure []
+traverseL f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> f x <span class="fu">&lt;*&gt;</span> traverseL f xs</code></pre>
+<p>Mozna to uogólnić na dowolne struktury iterowalne:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Traversable</span> t <span class="kw">where</span>
+<span class="ot">  traverse ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> t a     <span class="ot">-&gt;</span> f (t b)
+<span class="ot">  dist     ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span>               t (f a) <span class="ot">-&gt;</span> f (t a)
+  dist <span class="fu">=</span> traverse <span class="fu">id</span></code></pre>
+<p><strong>Ćwiczenie:</strong> napisz instancje <code>Traversable</code> dla drzew</p>
 <h1 id="nawiasy-idiomatyczne-idiom-brackets">Nawiasy idiomatyczne (idiom brackets)</h1>
 <p>Conor McBride zaproponował specjalną notację idiomatyczną:</p>
 <pre><code> (|f a1 .. an|) = pure f &lt;*&gt; a1 &lt;*&gt; .. &lt;*&gt; an

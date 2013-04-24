@@ -263,6 +263,52 @@ eval3 (Val i) = pure i
 eval3 (Add p q) = pure (+) <*> eval3 p <*> eval3 q
 ~~~~
 
+# sequence = transpose ?
+
+~~~~ {.haskell}
+sequence3 [] = pure []
+sequence3 (c:cs) = (:) <$> c <*> sequence3 cs
+  
+transpose3 [] = pure []
+transpose3 (xs :xss) = (:) <$> xs <*> transpose3 xss
+~~~~
+
+To jest ta sama funkcja:
+
+~~~~ {.haskell}
+dist :: Applicative f => [f a] => f [a]
+dist []     = pure []
+dist (x:xs) = (:) <$> x <*> dist xs
+~~~~
+
+# Funkcyjny iterator
+
+`dist` może być uzyte w połączeniu z `map` np
+
+~~~~ {.haskell}
+flakyMap :: (a -> Maybe b) -> [a] -> Maybe [b]
+flakyMap m as = dist (map m as)
+~~~~
+
+...ale tu przechodzimy listę dwa razy, a wystarczy raz:
+
+~~~~ {.haskell}
+traverseL :: Applicative f => (a -> f b) -> [a] -> f [b]
+traverseL f []     = pure []
+traverseL f (x:xs) = (:) <$> f x <*> traverseL f xs
+~~~~
+
+Mozna to uogólnić na dowolne struktury iterowalne:
+
+~~~~ {.haskell}
+class Traversable t where
+  traverse :: Applicative f => (a -> f b) -> t a     -> f (t b)
+  dist     :: Applicative f =>               t (f a) -> f (t a)
+  dist = traverse id
+~~~~
+
+**Ćwiczenie:** napisz instancje `Traversable` dla drzew
+
 # Nawiasy idiomatyczne (idiom brackets)
 
 Conor McBride zaproponował specjalną notację idiomatyczną:
