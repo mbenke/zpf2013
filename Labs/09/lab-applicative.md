@@ -88,25 +88,33 @@ for = flip map
 
 **Ćwiczenie:** napisz dwie instancje Applicative dla State.
 
-# Składanie idiomów
+# Funkcyjny iterator
+
+`dist` może być uzyte w połączeniu z `map` np
 
 ~~~~ {.haskell}
--- g :: * -> *,  f :: * -> * => g :. f :: * -> *
-newtype (g :. f) a = O { unO :: (g (f a)) }
-
-instance (Applicative g, Applicative f) => Applicative (g :. f) where
-  pure  = O . pure . pure
-  O gs <*> O xs = -- O (| (<*>) gs xs |) 
-                  O ( (<*>) <$> gs <*> xs)
+flakyMap :: (a -> Maybe b) -> [a] -> Maybe [b]
+flakyMap m as = dist (map m as)
 ~~~~
 
-**Ćwiczenie:** zdefiniować
+...ale tu przechodzimy listę dwa razy, a wystarczy raz:
 
 ~~~~ {.haskell}
-instance (Functor g, Functor f) => Functor (g :. f) where ...
+traverseL :: Applicative f => (a -> f b) -> [a] -> f [b]
+traverseL f []     = pure []
+traverseL f (x:xs) = (:) <$> f x <*> traverseL f xs
 ~~~~
 
-i sprawdzić, że złożenie funktorów aplikatywnych spełnia prawa dla funktora aplikatywnego.
+Mozna to uogólnić na dowolne struktury iterowalne:
+
+~~~~ {.haskell}
+class Traversable t where
+  traverse :: Applicative f => (a -> f b) -> t a     -> f (t b)
+  dist     :: Applicative f =>               t (f a) -> f (t a)
+  dist = traverse id
+~~~~
+
+**Ćwiczenie:** napisz instancje `Traversable` dla drzew
 
 # Parsery
 
