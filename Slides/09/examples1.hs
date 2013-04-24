@@ -34,7 +34,7 @@ consAll2 ys zss = map (uncurry (:)) $ zip ys zss
 
 transpose2 :: [[a]] -> [[a]]
 transpose2 (xs:xss) = zipWith (:) xs (transpose2 xss)
-transpose2 [] = []
+transpose2 [] = repeat []
   
 transpose :: [[a]] -> [[a]]
 transpose (xs:xss) = repeat (:) `zap` xs `zap` transpose xss

@@ -101,7 +101,7 @@ consAll (y:ys) (zs:zss) = (y:zs):consAll ys zss
 consAll _      _        = []
 
 zip :: [a] -> [b] -> [(a, b)]
-zip  (y:ys) (z:zs) = (a,b):zip ys zs
+zip  (y:ys) (z:zs) = (y,z):zip ys zs
 zip  _      _      = []
 
 -- Uogólnienie zip
@@ -127,7 +127,7 @@ Czyli można
 ~~~~ {.haskell}
 transpose2 :: [[a]] -> [[a]]
 transpose2 (xs:xss) = zipWith (:) xs (transpose2 xss)
-transpose2 [] = []
+transpose2 [] = repeat []
 ~~~~
 
 kłopoty z transpozycja pustej macierzy, ale:
@@ -315,7 +315,7 @@ Conor McBride zaproponował specjalną notację idiomatyczną:
 
 ~~~~ 
  (|f a1 .. an|) = pure f <*> a1 <*> .. <*> an
-sequence4 (c:cs) = (| (:) c (sequence cs) |)
+sequence4 (c:cs) = (| (:) c (sequence4 cs) |)
 eval4  (Add p q) = (| (+) (eval3 p) (eval3 q) |)
 ~~~~
 
@@ -328,7 +328,7 @@ https://personal.cis.strath.ac.uk/~conor/pub/she/
 Przy pomocy klas możemy udostępnić podobną, choć brzydszą notację:
 
 ~~~~ {.haskell}
-sequence4 (c:cs) = iI (:) c (sequence cs) Ii
+sequence4 (c:cs) = iI (:) c (sequence4 cs) Ii
 eval4  (Add p q) = iI (+) (eval3 p) (eval3 q) Ii
 
 class Applicative i => Idiomatic i f g | g -> f i where
@@ -605,9 +605,10 @@ instance Applicative f => Monoidal f where
   pair fa fb = (,) <$> fa <*> fb
   
 instance Monoidal f => Applicative f where  
-  pure x = fmap (const x) unit
+  pure x      = fmap (\() -> x) unit
+             -- fmap (const x) unit 
     mf <*> mx = (\(f,x) -> f x) <$> pair mf mx
-  -- albo uncurry ($) <$> pair mf mx
+             -- uncurry ($) <$> pair mf mx
 ~~~~
 
 Żeby uzyskać prawdziwą równoważność trzeba oczywiście mieć pewne prawa

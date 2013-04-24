@@ -68,7 +68,7 @@ instance Applicative i    => Idiomatic i x (Ii -> i x) where
 instance Idiomatic i f g  => Idiomatic i (s -> f) (i s -> g) where
   idiomatic sfi si    = idiomatic (sfi <*> si)
 
-sequence4 (c:cs) = iI (:) c (sequence cs) Ii
+sequence4 (c:cs) = iI (:) c (sequence4 cs) Ii
 eval4  (Add p q) = iI (+) (eval3 p) (eval3 q) Ii
 
 dist :: Applicative f => [f a] => f [a]
