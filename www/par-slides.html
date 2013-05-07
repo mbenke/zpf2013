@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" type="text/css" media="screen, projection, print"
+    href="http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+  <script src="http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js.gz"
+    charset="utf-8" type="text/javascript"></script>
+</head>
+<body>
+<div class="section slide level1" id="równoległość-a-współbieżność">
+<h1>Równoległość a współbieżność</h1>
+<p>A <em>parallel</em> program is one that uses a multiplicity of computational hardware (e.g. multiple processor cores) in order to perform computation more quickly. Different parts of the computation are delegated to different processors that execute at the same time (in parallel), so that results may be delivered earlier than if the computation had been performed sequentially.</p>
+<p>In contrast, <em>concurrency</em> is a program-structuring technique in which there are multiple threads of control. Notionally the threads of control execute &quot;at the same time&quot;; that is, the user sees their effects interleaved. Whether they actually execute at the same time or not is an implementation detail; a concurrent program can execute on a single processor through interleaved execution, or on multiple physical processors.</p>
+<p>--- Simon Marlow, <em>Parallel and Concurrent Programming in Haskell</em>.</p>
+</div>
+<div class="section slide level1" id="sudoku">
+<h1>Sudoku</h1>
+<p>Przykład z dużą ilościa obliczeń: rozwiązywanie Sudoku</p>
+<p>Każda linia pliku wejściowego zawiera instancję problemu.</p>
+<p>Program sekwencyjny:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
+    [f] <span class="ot">&lt;-</span> getArgs
+    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
+    <span class="fu">mapM_</span> (evaluate <span class="fu">.</span> solve) grids</code></pre>
+<pre><code>$ ghc -O2 -threaded --make sudoku1.hs
+$ ./sudoku1 sudoku17.1000.txt +RTS -s
+  TASKS: 3 (1 bound, 2 peak workers (2 total), using -N1)
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 0 fizzled)
+
+  Total   time    2.53s  (  2.56s elapsed)
+  Alloc rate    973,110,877 bytes per MUT second
+  Productivity  96.0% of total user, 94.9% of total elapsed</code></pre>
+</div>
+<div class="section slide level1" id="wiele-procesorów">
+<h1>Wiele procesorów?</h1>
+<p>Poznajcie Azora: 64 rdzenie, 64GB pamięci</p>
+<pre><code>$ ghc -O2 -threaded --make sudoku1.hs
+$ ./sudoku1 sudoku17.1000.txt +RTS -s
+  TASKS: 3 (1 bound, 2 peak workers (2 total), using -N1)
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 0 fizzled)
+
+  Total   time    2.53s  (  2.56s elapsed)
+  Productivity  96.0% of total user, 94.9% of total elapsed</code></pre>
+<pre><code>$ ./sudoku1 sudoku17.1000.txt +RTS -s -N16
+  TASKS: 18 (1 bound, 17 peak workers (17 total), using -N16)
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 0 fizzled)
+
+  Total   time   16.84s  (  4.09s elapsed)
+  Productivity  51.8% of total user, 213.1% of total elapsed</code></pre>
+<p>Program działa wolniej: niepotrzebnie uruchamiamy N-1 dodatkowych wątków, które tylko przeszkadzają.</p>
+</div>
+<div class="section slide level1" id="monada-eval-----strategie-obliczeń">
+<h1>Monada <code>Eval</code> --- strategie obliczeń</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Control.Parallel.Strategies</span>
+<span class="kw">data</span> <span class="dt">Eval</span> a
+<span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Eval</span>
+
+<span class="ot">runEval ::</span> <span class="dt">Eval</span> a
+<span class="ot">rseq ::</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> a  <span class="co">-- &quot;w tym wątku&quot;</span>
+<span class="ot">rpar ::</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> a  <span class="co">--  &quot;w nowym wątku&quot;</span></code></pre>
+<p>Wywołanie leniwej funkcji w nowym wątku ma mało sensu</p>
+<p>Musimy sterować ilością obliczeń</p>
+</div>
+<div class="section slide level1" id="deepseq-friends">
+<h1>deepseq &amp; friends</h1>
+<p>deepseq: fully evaluates the first argument, before returning the second.</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">seq</span><span class="ot"> ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b
+<span class="co">-- Control.DeepSeq</span>
+<span class="kw">class</span> <span class="dt">NFData</span> a <span class="kw">where</span>
+<span class="ot">    rnf ::</span> a <span class="ot">-&gt;</span> ()
+<span class="co">-- rnf should reduce its argument to normal form </span>
+<span class="co">-- (that is, fully evaluate all sub-components), </span>
+<span class="co">-- and then return &#39;()&#39;</span>
+
+<span class="co">-- Default implementation</span>
+    rnf a <span class="fu">=</span> a <span class="ot">`seq`</span> ()
+
+<span class="ot">deepseq ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b
+<span class="ot">force ::</span>  <span class="dt">NFData</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> a
+force x <span class="fu">=</span> deepseq x x
+
+<span class="co">-- Control.Exception</span>
+<span class="co">-- Forces its argument to be evaluated to weak head normal form </span>
+<span class="co">-- when the resultant IO action is executed.</span>
+<span class="ot">evaluate ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a</code></pre>
+</div>
+<div class="section slide level1" id="deepseq-friends-1">
+<h1>deepseq &amp; friends</h1>
+<p><code>seq</code> oblicza wyrażenie ``płytko'' (tylko korzeń drzewa)</p>
+<p><code>deepseq</code> oblicza głęboko (całe drzewo a do liści)</p>
+<pre><code>&gt; let x = [undefined] :: [Int] in x `seq` length x
+1
+
+&gt; let x = [undefined] :: [Int] in x `deepseq` length x
+*** Exception: Prelude.undefined</code></pre>
+</div>
+<div class="section slide level1" id="program-równoległy">
+<h1>Program równoległy</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Parallel.Strategies  -- cabal install parallel
+main <span class="fu">=</span> <span class="kw">do</span>
+    [f] <span class="ot">&lt;-</span> getArgs
+    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
+
+    <span class="kw">let</span> (as,bs) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> grids <span class="ot">`div`</span> <span class="dv">2</span>) grids
+
+    evaluate <span class="fu">$</span> runEval <span class="fu">$</span> <span class="kw">do</span>
+       a <span class="ot">&lt;-</span> rpar (force (<span class="fu">map</span> solve as))
+       b <span class="ot">&lt;-</span> rpar (force (<span class="fu">map</span> solve bs))
+       rseq a
+       rseq b
+       <span class="fu">return</span> ()</code></pre>
+<p>Tworzymy tu dwa wątki, w GHC nazywane &quot;sparks&quot; (to są lekkie wątki, nie wątki systemowe).</p>
+</div>
+<div class="section slide level1" id="wyniki">
+<h1>Wyniki</h1>
+<pre><code>$ ghc -O2 -rtsopts -threaded --make sudoku2.hs
+$ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
+
+  TASKS: 4 (1 bound, 3 peak workers (3 total), using -N2)
+  SPARKS: 2 (1 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 1 fizzled)
+
+  Total   time    2.73s  (  1.77s elapsed)
+  Productivity  91.1% of total user, 140.4% of total elapsed</code></pre>
+<p>To już lepiej, ale ciągle nie potrafimy wykorzystac maszyny:</p>
+<pre><code>./sudoku2 sudoku17.1000.txt +RTS -N16 -s -RTS
+
+  TASKS: 18 (1 bound, 17 peak workers (17 total), using -N16)
+  SPARKS: 2 (1 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 1 fizzled)
+
+  Total   time   15.12s  (  3.19s elapsed)
+  Productivity  55.2% of total user, 261.7% of total elapsed</code></pre>
+</div>
+<div class="section slide level1" id="iskry">
+<h1>Iskry</h1>
+<ul>
+<li><p>Nowa &quot;iskra&quot; jest tworzona prz kazdym użyciu <code>rpar</code></p></li>
+<li><p>Gdy tylko system ma jakąś wolną jednostkę (procesor, rdzeń, etc), przydzielamy mu iskrę z kolejki (to jest &quot;converted&quot;).</p></li>
+<li><p>Jedna jednostka zawsze zajęta przez główny wątek</p></li>
+</ul>
+<p>Tworzenie iskier mioże się nie powieść z powodu</p>
+<ul>
+<li><p>przepełnienia kolejki (overflow)</p></li>
+<li><p>wyrażenie zostało już obliczone (dud)</p></li>
+</ul>
+</div>
+<div class="section slide level1" id="kolejka-iskier">
+<h1>Kolejka iskier</h1>
+<p>Iskry z kolejki mogą zostać</p>
+<ul>
+<li><p>&quot;skonwertowane&quot; (converted)</p></li>
+<li><p>obliczone poza kolejką (fizzle)</p></li>
+<li><p>odśmiecone (GC)</p></li>
+</ul>
+</div>
+<div class="section slide level1" id="section">
+<h1></h1>
+<div class="figure">
+<img src="spark-lifecycle.png" title="Life cycle of a spark" />
+</div>
+</div>
+<div class="section slide level1" id="sudoku2.hs">
+<h1>sudoku2.hs</h1>
+<pre><code>  SPARKS: 2 (1 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 1 fizzled)
+
+  Total   time    2.73s  (  1.77s elapsed)
+
+  Productivity  91.1% of total user, 140.4% of total elapsed</code></pre>
+<p>Zauważmy, że ciągle odłogiem leży &quot;pół rdzenia&quot;.</p>
+</div>
+<div class="section slide level1" id="threadscope">
+<h1>Threadscope</h1>
+<ul>
+<li>Narzędzie do analizy wykonania programu równoległego</li>
+</ul>
+<pre><code>$ ./sudoku2 sudoku17.1000.txt +RTS -N2 -ls
+$ threadscope sudoku2.eventlog &amp;
+$ ~/.cabal/bin/threadscope sudoku2.eventlog &amp;</code></pre>
+</div>
+<div class="section slide level1" id="threadscope---sudoku2">
+<h1>Threadscope - sudoku2</h1>
+<div class="figure">
+<img src="sudoku2.png" title="sudoku2.eventlog" />
+</div>
+</div>
+<div class="section slide level1" id="dynamiczny-podział-pracy">
+<h1>Dynamiczny podział pracy</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parMap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Eval</span> [b]
+parMap f [] <span class="fu">=</span> <span class="fu">return</span> []
+parMap f (a<span class="fu">:</span>as) <span class="fu">=</span> <span class="kw">do</span>
+   b <span class="ot">&lt;-</span> rpar (f a)
+   bs <span class="ot">&lt;-</span> parMap f as
+   <span class="fu">return</span> (b<span class="fu">:</span>bs)</code></pre>
+<p>Obliczenie:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">    evaluate <span class="fu">$</span> force <span class="fu">$</span> runEval <span class="fu">$</span> parMap solve grids</code></pre>
+</div>
+<div class="section slide level1" id="parmap---wyniki">
+<h1>parMap - wyniki</h1>
+<pre><code>$ ./sudoku3b sudoku17.1000.txt +RTS -N2 -s -RTS
+  TASKS: 4 (1 bound, 3 peak workers (3 total), using -N2)
+  SPARKS: 1000 (1000 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 0 fizzled)
+
+  Total   time    2.84s  (  1.49s elapsed)
+  Productivity  88.9% of total user, 169.6% of total elapsed</code></pre>
+<p>Lepsza produktywność, poza tym łatwiej skalować na więcej rdzeni:</p>
+<pre><code>sudoku2b 
+-N8: Productivity  71.0% of total user, 169.2% of total elapsed
+N16: Productivity  53.5% of total user, 252.6% of total elapsed
+
+sudoku3b 
+-N8: Productivity  78.5% of total user, 569.3% of total elapsed
+N16: Productivity  62.8% of total user, 833.8% of total elapsed
+N32: Productivity  43.5% of total user, 1112.6% of total elapsed</code></pre>
+</div>
+<div class="section slide level1" id="threadscope---sudoku3">
+<h1>Threadscope - sudoku3</h1>
+<div class="figure">
+<img src="sudoku3.png" title="sudoku3.eventlog" />
+</div>
+</div>
+<div class="section slide level1" id="threadscope---sudoku3--n8">
+<h1>Threadscope - sudoku3 -N8</h1>
+<div class="figure">
+<img src="sudoku3-N8.png" title="sudoku3-N8.eventlog" />
+</div>
+</div>
+<div class="section slide level1" id="strategie">
+<h1>Strategie</h1>
+<p>Dodatkowy poziom abstrakcji zbudowany na monadzie <code>Eval</code></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Strategy</span> a <span class="fu">=</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> 
+<span class="ot">rseq ::</span> <span class="dt">Strategy</span> a
+<span class="ot">rpar ::</span> <span class="dt">Strategy</span> a
+<span class="ot">r0 ::</span> <span class="dt">Strategy</span> a
+r0 x <span class="fu">=</span> <span class="fu">return</span> x
+<span class="ot">rdeepseq ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">Strategy</span> a
+rdeepseq <span class="fu">=</span> rseq(deep x)
+
+<span class="ot">using ::</span> a <span class="ot">-&gt;</span> <span class="dt">Strategy</span> a <span class="ot">-&gt;</span> a
+x <span class="ot">`using`</span> s <span class="fu">=</span> runEval (s x)</code></pre>
+<p>Zaletą takiego podejścia jest to, że &quot;using s&quot; można usuwać (prawie) bez zmian semantyki (program może się najwyżej stać &quot;bardziej zdefiniowany&quot;)</p>
+</div>
+<div class="section slide level1" id="równoległe-przetwarzenie-listy">
+<h1>Równoległe przetwarzenie listy</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">parMap f xs <span class="fu">=</span> <span class="fu">map</span> f xs <span class="ot">`using`</span> parList rseq
+
+<span class="co">-- Control.Parallel.Strategies</span>
+<span class="ot">parList ::</span> <span class="dt">Strategy</span> a <span class="ot">-&gt;</span> <span class="dt">Strategy</span> [a]
+parList strat [] <span class="fu">=</span> <span class="fu">return</span> []
+parList strat (x<span class="fu">:</span>xs) <span class="fu">=</span> <span class="kw">do</span>
+    x&#39; <span class="ot">&lt;-</span> rpar (x <span class="ot">`using`</span> strat)
+    xs&#39; <span class="ot">&lt;-</span> parList strat xs
+    <span class="fu">return</span> (x&#39;<span class="fu">:</span>xs)</code></pre>
+</div>
+<div class="section slide level1" id="uwaga">
+<h1>Uwaga</h1>
+<p>Iskry są bardzo tanie, ale mimo wszystko nie należy tworzyć ich zbyt wiele</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">parFib n <span class="fu">|</span> n <span class="fu">&lt;</span> <span class="dv">2</span> <span class="fu">=</span> n
+parFib n <span class="fu">=</span> p <span class="ot">`par`</span> q <span class="ot">`pseq`</span> (p <span class="fu">+</span> q)
+    <span class="kw">where</span>
+      p <span class="fu">=</span> parFib <span class="fu">$</span> n <span class="fu">-</span> <span class="dv">1</span>
+      q <span class="fu">=</span> parFib <span class="fu">$</span> n <span class="fu">-</span> <span class="dv">2</span>
+
+<span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="fu">print</span> <span class="fu">$</span> parFib <span class="dv">40</span></code></pre>
+<pre><code>$ ./badfib +RTS -N2 -s -RTS
+
+  3,321,319,864 bytes allocated in the heap
+      1,173,852 bytes copied during GC
+  Parallel GC work balance: 1.75 (277333 / 158455, ideal 2)
+
+  SPARKS: 166058569 (222 converted, 113019108 overflowed, 0 dud, 
+                     51863340 GC&#39;d, 1175899 fizzled)
+  Total   time    5.49s  (  2.75s elapsed)
+  Productivity  90.2% of total user, 180.0% of total elapsed</code></pre>
+</div>
+<div class="section slide level1" id="lepiej">
+<h1>Lepiej</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cutoff ::</span> <span class="dt">Int</span>
+cutoff <span class="fu">=</span> <span class="dv">20</span>
+
+parFib n <span class="fu">|</span> n <span class="fu">&lt;</span> cutoff <span class="fu">=</span> fib n
+parFib n <span class="fu">=</span> p <span class="ot">`par`</span> q <span class="ot">`pseq`</span> (p <span class="fu">+</span> q)
+    <span class="kw">where</span>
+      p <span class="fu">=</span> parFib <span class="fu">$</span> n <span class="fu">-</span> <span class="dv">1</span>
+      q <span class="fu">=</span> parFib <span class="fu">$</span> n <span class="fu">-</span> <span class="dv">2</span>
+
+fib n <span class="fu">|</span> n<span class="fu">&lt;</span><span class="dv">2</span> <span class="fu">=</span> n
+fib n <span class="fu">=</span> fib (n <span class="fu">-</span> <span class="dv">1</span>) <span class="fu">+</span> fib (n <span class="fu">-</span> <span class="dv">2</span>)</code></pre>
+<pre><code>         911,348 bytes allocated in the heap
+              20 bytes copied during GC
+
+SPARKS: 29892 (21 converted, 5065 overflowed, 0 dud, 18 GC&#39;d, 24788 fizzled)
+
+Total   time    1.73s  (  0.87s elapsed)
+Productivity 100.0% of total user, 198.8% of total elapsed</code></pre>
+</div>
+<div class="section slide level1" id="threadscope-1">
+<h1>Threadscope</h1>
+<pre><code>$ ghc -O2 -threaded -eventlog --make badfib.hs
+$ ./badfib +RTS -N2 -ls
+$ ~/.cabal/bin/threadscope badfib.eventlog</code></pre>
+<div class="figure">
+<img src="badfib.png" title="Threadscope" alt="threadscope:badfib" /><p class="caption">threadscope:badfib</p>
+</div>
+</div>
+<div class="section slide level1" id="threadscope-2">
+<h1>Threadscope</h1>
+<pre><code>$ ghc -O2 -threaded -eventlog --make parfib.hs
+$ ./parfib +RTS -N2 -ls
+$ ~/.cabal/bin/threadscope parfib.eventlog</code></pre>
+<div class="figure">
+<img src="parfib.png" title="Threadscope" alt="threadscope:badfib" /><p class="caption">threadscope:badfib</p>
+</div>
+</div>
+<div class="section slide level1" id="ćwiczenie">
+<h1>Ćwiczenie</h1>
+<p>Napisz funkcję rozmieszczającą n hetmanów na szachownicy n*n</p>
+<ul>
+<li><p>sekwencyjnie</p></li>
+<li><p>równolegle</p></li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">PartialSolution</span> <span class="fu">=</span> [<span class="dt">Int</span>]
+<span class="kw">type</span> <span class="dt">Solution</span> <span class="fu">=</span> <span class="dt">PartialSolution</span>
+<span class="kw">type</span> <span class="dt">BoardSize</span> <span class="fu">=</span> <span class="dt">Int</span>
+
+<span class="ot">queens ::</span> <span class="dt">BoardSize</span> <span class="ot">-&gt;</span> [<span class="dt">Solution</span>]
+queens n <span class="fu">=</span> <span class="fu">iterate</span> (<span class="fu">concatMap</span> (addQueen n)) [[ ]] <span class="fu">!!</span> n
+
+<span class="ot">addQueen ::</span> <span class="dt">BoardSize</span> <span class="ot">-&gt;</span> <span class="dt">PartialSolution</span> <span class="ot">-&gt;</span> [<span class="dt">PartialSolution</span>]
+addQueen n s <span class="fu">=</span> [x <span class="fu">:</span> s <span class="fu">|</span> x <span class="ot">&lt;-</span> [<span class="dv">1</span><span class="fu">..</span>n], safe x s <span class="dv">1</span>]
+
+<span class="ot">safe ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">PartialSolution</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>
+safe x [] n <span class="fu">=</span> <span class="kw">True</span>
+safe x (c <span class="fu">:</span> y) n <span class="fu">=</span> x <span class="fu">/=</span> c <span class="fu">&amp;&amp;</span> x <span class="fu">/=</span> c <span class="fu">+</span> n 
+       <span class="fu">&amp;&amp;</span> x <span class="fu">/=</span> c <span class="fu">-</span> n <span class="fu">&amp;&amp;</span> safe x y (n <span class="fu">+</span> <span class="dv">1</span>)</code></pre>
+</div>
+<div class="section slide level1" id="współbieżność">
+<h1>Współbieżność</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Concurrent
+<span class="co">-- forkIO LL IO() -&gt; IO ThreadId</span>
+<span class="kw">import</span> Control.Monad
+<span class="kw">import</span> System.IO
+
+main <span class="fu">=</span> <span class="kw">do</span>
+  hSetBuffering stdout <span class="dt">NoBuffering</span>
+  forkIO <span class="fu">$</span> forever <span class="fu">$</span> <span class="fu">putChar</span> <span class="ch">&#39;A&#39;</span>
+  forkIO <span class="fu">$</span> forever <span class="fu">$</span> <span class="fu">putChar</span> <span class="ch">&#39;B&#39;</span>
+  threadDelay (<span class="dv">10</span><span class="fu">^</span><span class="dv">6</span>)</code></pre>
+</div>
+<div class="section slide level1" id="synchronizacja-mvar">
+<h1>Synchronizacja: <code>MVar</code></h1>
+<p>Jednoelementowy bufor/semafor:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">MVar</span> a
+<span class="ot">newMVar ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">MVar</span> a)
+<span class="ot">takeMVar ::</span>  <span class="dt">MVar</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a 
+<span class="ot">putMVar ::</span> <span class="dt">MVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
+<p><code>stdout</code> jest chronione MVar, dlatego w poprzednim przykładzie A i B rozkładają się w miarę równo.</p>
+</div>
+<div class="section slide level1" id="asynchroniczne-io">
+<h1>Asynchroniczne I/O</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> GetURL(getURL)
+<span class="kw">import</span> Control.Concurrent
+
+main <span class="fu">=</span> <span class="kw">do</span>
+  m1 <span class="ot">&lt;-</span> newEmptyMVar
+  m2 <span class="ot">&lt;-</span> newEmptyMVar  
+  forkIO <span class="fu">$</span> <span class="kw">do</span> 
+    r <span class="ot">&lt;-</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Shovel&quot;</span>
+    putMVar m1 r
+    
+  forkIO <span class="fu">$</span> <span class="kw">do</span> 
+    r <span class="ot">&lt;-</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Spade&quot;</span>
+    putMVar m2 r
+
+  r1 <span class="ot">&lt;-</span> takeMVar m1
+  <span class="fu">print</span> <span class="st">&quot;1 DONE&quot;</span>  
+  r2 <span class="ot">&lt;-</span> takeMVar m2
+  <span class="fu">print</span> <span class="st">&quot;2 DONE&quot;</span></code></pre>
+</div>
+<div class="section slide level1" id="ładniej">
+<h1>Ładniej</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Async</span> a <span class="fu">=</span> <span class="dt">Async</span> (<span class="dt">MVar</span> a)
+
+<span class="ot">async ::</span> <span class="dt">IO</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Async</span> a)
+async action <span class="fu">=</span> <span class="kw">do</span>
+   var <span class="ot">&lt;-</span> newEmptyMVar
+   forkIO (action <span class="fu">&gt;&gt;=</span> putMVar var)
+   <span class="fu">return</span> (<span class="dt">Async</span> var)
+
+<span class="ot">wait ::</span> <span class="dt">Async</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+wait (<span class="dt">Async</span> var) <span class="fu">=</span> readMVar var
+
+main <span class="fu">=</span> <span class="kw">do</span>
+  m1 <span class="ot">&lt;-</span> async <span class="fu">$</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Shovel&quot;</span>
+  m2 <span class="ot">&lt;-</span> async <span class="fu">$</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Spade&quot;</span>
+  wait m1
+  <span class="fu">print</span> <span class="st">&quot;1 DONE&quot;</span>  
+  wait m2
+  <span class="fu">print</span> <span class="st">&quot;2 DONE&quot;</span></code></pre>
+</div>
+<div class="section slide level1" id="równoległość-danych-monada-par">
+<h1>Równoległość danych: monada Par</h1>
+<p>Element pośredni pomiędzy <code>Eval</code> a <code>Concurrent</code>: jawne tworzenie wątków, ale z zachowaniem determinizmu</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Par</span> a
+<span class="kw">instance</span> <span class="kw">Functor</span> <span class="dt">Par</span>
+<span class="kw">instance</span> <span class="kw">Applicative</span> <span class="dt">Par</span>
+<span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Par</span>
+
+<span class="ot">runPar ::</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> a
+<span class="ot">fork ::</span> <span class="dt">Par</span> () <span class="ot">-&gt;</span> <span class="dt">Par</span> ()</code></pre>
+</div>
+<div class="section slide level1" id="komunikacja-----ivar">
+<h1>Komunikacja --- IVar</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">IVar</span> a
+<span class="ot">new ::</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
+<span class="ot">put ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> ()
+<span class="ot">get ::</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> a</code></pre>
+<ul>
+<li><p><code>new</code> tworzy nową , pustą zmienną</p></li>
+<li><p><code>put</code> wypełnia ją wartością (mozna tylko raz)</p></li>
+<li><p><code>get</code> pobiera wartość, ewentualnie czekając</p></li>
+</ul>
+</div>
+<div class="section slide level1" id="sudoku-z-użyciem-par">
+<h1>Sudoku z użyciem <code>Par</code></h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
+    [f] <span class="ot">&lt;-</span> getArgs
+    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
+
+    <span class="kw">let</span> (as,bs) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> grids <span class="ot">`div`</span> <span class="dv">2</span>) grids
+
+    <span class="fu">print</span> <span class="fu">$</span> <span class="fu">length</span> <span class="fu">$</span> <span class="fu">filter</span> isJust <span class="fu">$</span> runPar <span class="fu">$</span> <span class="kw">do</span>
+       i1 <span class="ot">&lt;-</span> new
+       i2 <span class="ot">&lt;-</span> new
+       fork <span class="fu">$</span> put i1 (<span class="fu">map</span> solve as)
+       fork <span class="fu">$</span> put i2 (<span class="fu">map</span> solve bs)
+       as&#39; <span class="ot">&lt;-</span> get i1
+       bs&#39; <span class="ot">&lt;-</span> get i2
+       <span class="fu">return</span> (as&#39; <span class="fu">++</span> bs&#39;)
+
+<span class="co">--   Productivity  96.3% of total user, 141.2% of total elapsed</span></code></pre>
+</div>
+<div class="section slide level1" id="parmap">
+<h1>parMap</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">spawn ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
+spawn p <span class="fu">=</span> <span class="kw">do</span>
+      i <span class="ot">&lt;-</span> new
+      fork (p <span class="fu">&gt;&gt;=</span> put i)
+      <span class="fu">return</span> i
+
+parMapM f as <span class="fu">=</span> <span class="kw">do</span>
+    ibs <span class="ot">&lt;-</span> <span class="fu">mapM</span> (spawn <span class="fu">.</span> f) as
+    <span class="fu">mapM</span> get ibs
+
+<span class="co">-- Control.Monad.Par.parMap</span>
+main <span class="fu">=</span> <span class="kw">do</span>
+    [f] <span class="ot">&lt;-</span> getArgs
+    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
+    <span class="fu">print</span> (<span class="fu">length</span> (<span class="fu">filter</span> isJust (runPar <span class="fu">$</span> parMap solve grids)))
+
+<span class="co">-- Productivity  95.8% of total user, 173.1% of total elapsed</span></code></pre>
+</div>
+<div class="section slide level1" id="koniec">
+<h1>Koniec</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
+</div>
+</body>
+</html>

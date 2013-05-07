@@ -35,18 +35,38 @@ main = do
 ~~~~
 $ ghc -O2 -threaded --make sudoku1.hs
 $ ./sudoku1 sudoku17.1000.txt +RTS -s
-  Task  0 (worker) :    0.00s    (  0.00s)       0.00s    (  0.00s)
-  Task  1 (worker) :    0.00s    (  2.37s)       0.00s    (  0.00s)
-  Task  2 (bound)  :    2.32s    (  2.32s)       0.05s    (  0.05s)
-
+  TASKS: 3 (1 bound, 2 peak workers (2 total), using -N1)
   SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
 
-  INIT    time    0.00s  (  0.00s elapsed)
-  MUT     time    2.32s  (  2.32s elapsed)
-  GC      time    0.05s  (  0.05s elapsed)
-  EXIT    time    0.00s  (  0.00s elapsed)
-  Total   time    2.37s  (  2.37s elapsed)
+  Total   time    2.53s  (  2.56s elapsed)
+  Alloc rate    973,110,877 bytes per MUT second
+  Productivity  96.0% of total user, 94.9% of total elapsed
 ~~~~
+
+# Wiele procesorów?
+
+Poznajcie Azora: 64 rdzenie, 64GB pamięci
+
+~~~~
+$ ghc -O2 -threaded --make sudoku1.hs
+$ ./sudoku1 sudoku17.1000.txt +RTS -s
+  TASKS: 3 (1 bound, 2 peak workers (2 total), using -N1)
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  Total   time    2.53s  (  2.56s elapsed)
+  Productivity  96.0% of total user, 94.9% of total elapsed
+~~~~
+
+~~~~
+$ ./sudoku1 sudoku17.1000.txt +RTS -s -N16
+  TASKS: 18 (1 bound, 17 peak workers (17 total), using -N16)
+  SPARKS: 0 (0 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
+
+  Total   time   16.84s  (  4.09s elapsed)
+  Productivity  51.8% of total user, 213.1% of total elapsed
+~~~~
+
+Program działa wolniej: niepotrzebnie uruchamiamy N-1 dodatkowych wątków, które tylko przeszkadzają.
 
 # Monada `Eval` --- strategie obliczeń
 
@@ -66,13 +86,23 @@ Musimy sterować ilością obliczeń
 
 # deepseq & friends
 
+deepseq: fully evaluates the first argument, before returning the second.
+
 ~~~~ {.haskell}
 seq :: a -> b -> b
 -- Control.DeepSeq
 class NFData a where
     rnf :: a -> ()
+-- rnf should reduce its argument to normal form 
+-- (that is, fully evaluate all sub-components), 
+-- and then return '()'
+
+-- Default implementation
     rnf a = a `seq` ()
+
 deepseq :: NFData a => a -> b -> b
+force ::  NFData a => a -> a
+force x = deepseq x x
 
 -- Control.Exception
 -- Forces its argument to be evaluated to weak head normal form 
@@ -80,6 +110,19 @@ deepseq :: NFData a => a -> b -> b
 evaluate :: a -> IO a
 ~~~~
 
+# deepseq & friends
+
+`seq` oblicza wyrażenie ``płytko'' (tylko korzeń drzewa)
+
+`deepseq` oblicza głęboko (całe drzewo a do liści)
+
+```
+> let x = [undefined] :: [Int] in x `seq` length x
+1
+
+> let x = [undefined] :: [Int] in x `deepseq` length x
+*** Exception: Prelude.undefined
+```
 # Program równoległy
 
 ~~~~ {.haskell}
@@ -91,8 +134,8 @@ main = do
     let (as,bs) = splitAt (length grids `div` 2) grids
 
     evaluate $ runEval $ do
-       a <- rpar (deep (map solve as))
-       b <- rpar (deep (map solve bs))
+       a <- rpar (force (map solve as))
+       b <- rpar (force (map solve bs))
        rseq a
        rseq b
        return ()
@@ -107,24 +150,28 @@ Tworzymy tu dwa wątki, w GHC nazywane "sparks" (to są lekkie wątki, nie wątk
 $ ghc -O2 -rtsopts -threaded --make sudoku2.hs
 $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
 
-                        MUT time (elapsed)       GC time  (elapsed)
-  Task  0 (worker) :    2.08s    (  1.27s)       0.38s    (  0.41s)
-  Task  1 (worker) :    2.43s    (  1.64s)       0.06s    (  0.07s)
-  Task  2 (bound)  :    2.44s    (  1.66s)       0.04s    (  0.05s)
-  Task  3 (worker) :    2.49s    (  1.70s)       0.00s    (  0.00s)
+  TASKS: 4 (1 bound, 3 peak workers (3 total), using -N2)
+  SPARKS: 2 (1 converted, 0 overflowed, 0 dud, 0 GC'd, 1 fizzled)
 
-  SPARKS: 2 (1 converted, 0 dud, 0 GC'd, 1 fizzled)
-
-  Total   time    2.49s  (  1.70s elapsed)
-
-  Alloc rate    478,082,040 bytes per MUT second
-
-  Productivity  97.6% of total user, 142.7% of total elapsed
+  Total   time    2.73s  (  1.77s elapsed)
+  Productivity  91.1% of total user, 140.4% of total elapsed
 ~~~~
+
+To już lepiej, ale ciągle nie potrafimy wykorzystac maszyny:
+
+```
+./sudoku2 sudoku17.1000.txt +RTS -N16 -s -RTS
+
+  TASKS: 18 (1 bound, 17 peak workers (17 total), using -N16)
+  SPARKS: 2 (1 converted, 0 overflowed, 0 dud, 0 GC'd, 1 fizzled)
+
+  Total   time   15.12s  (  3.19s elapsed)
+  Productivity  55.2% of total user, 261.7% of total elapsed
+```
 
 # Iskry
 
-* Nowa "iskra" jest tworzona prz kazdym użyciu rpar
+* Nowa "iskra" jest tworzona prz kazdym użyciu `rpar`
 
 * Gdy tylko system ma jakąś wolną jednostkę (procesor, rdzeń, etc), przydzielamy mu iskrę z kolejki (to jest "converted").
 
@@ -152,16 +199,16 @@ Iskry z kolejki mogą zostać
 
 # sudoku2.hs
 ~~~~
-  SPARKS: 2 (1 converted, 0 dud, 0 GC'd, 1 fizzled)
+  SPARKS: 2 (1 converted, 0 overflowed, 0 dud, 0 GC'd, 1 fizzled)
 
-  Total   time    2.49s  (  1.70s elapsed)
+  Total   time    2.73s  (  1.77s elapsed)
 
-  Productivity  97.6% of total user, 142.7% of total elapsed
+  Productivity  91.1% of total user, 140.4% of total elapsed
 ~~~~
 
 Zauważmy, że ciągle odłogiem leży "pół rdzenia".
 
-Threadscope
+# Threadscope
 
 * Narzędzie do analizy wykonania programu równoległego
 
@@ -192,22 +239,28 @@ Obliczenie:
     evaluate $ force $ runEval $ parMap solve grids
 ~~~~
 
+# parMap - wyniki
+
 ~~~~
-  SPARKS: 1000 (995 converted, 0 dud, 0 GC'd, 5 fizzled)
+$ ./sudoku3b sudoku17.1000.txt +RTS -N2 -s -RTS
+  TASKS: 4 (1 bound, 3 peak workers (3 total), using -N2)
+  SPARKS: 1000 (1000 converted, 0 overflowed, 0 dud, 0 GC'd, 0 fizzled)
 
-  Total   time    2.20s  (  1.22s elapsed)
-
-  Productivity  94.2% of total user, 169.0% of total elapsed
+  Total   time    2.84s  (  1.49s elapsed)
+  Productivity  88.9% of total user, 169.6% of total elapsed
 ~~~~
 
 Lepsza produktywność, poza tym łatwiej skalować na więcej rdzeni:
 
 ~~~~
-./sudoku2b sudoku17.1000.txt +RTS -N8 -s
-  Productivity  58.2% of total user, 218.2% of total elapsed
+sudoku2b 
+-N8: Productivity  71.0% of total user, 169.2% of total elapsed
+N16: Productivity  53.5% of total user, 252.6% of total elapsed
 
-[ben@students Marlow]$ ./sudoku3b sudoku17.1000.txt +RTS -N8 -s
- Productivity  63.6% of total user, 487.4% of total elapsed
+sudoku3b 
+-N8: Productivity  78.5% of total user, 569.3% of total elapsed
+N16: Productivity  62.8% of total user, 833.8% of total elapsed
+N32: Productivity  43.5% of total user, 1112.6% of total elapsed
 ~~~~
 
 # Threadscope - sudoku3
