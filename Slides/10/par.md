@@ -101,6 +101,8 @@ class NFData a where
     rnf a = a `seq` ()
 
 deepseq :: NFData a => a -> b -> b
+deepseq a b = rnf a `seq` b
+
 force ::  NFData a => a -> a
 force x = deepseq x x
 
@@ -195,7 +197,7 @@ Iskry z kolejki mogą zostać
 
 # 
 
-![](spark-lifecycle.png "Life cycle of a spark")
+![spark lifecycle](spark-lifecycle800.png "Life cycle of a spark")
 
 # sudoku2.hs
 ~~~~
@@ -320,17 +322,24 @@ main = print $ parFib 40
 ~~~~
 
 ~~~~
-$ ./badfib +RTS -N2 -s -RTS
+@azor:
+./badfib +RTS -N2 -s -RTS
+  SPARKS: 165597322 (16 converted, 14860689 overflowed, 0 dud, 
+                     150628741 GC'd, 107876 fizzled)
+  Total   time    7.18s  (  3.65s elapsed)
+  Productivity  71.8% of total user, 141.5% of total elapsed
 
-  3,321,319,864 bytes allocated in the heap
-      1,173,852 bytes copied during GC
-  Parallel GC work balance: 1.75 (277333 / 158455, ideal 2)
-
-  SPARKS: 166058569 (222 converted, 113019108 overflowed, 0 dud, 
-                     51863340 GC'd, 1175899 fizzled)
-  Total   time    5.49s  (  2.75s elapsed)
-  Productivity  90.2% of total user, 180.0% of total elapsed
+N60:
+ SPARKS: 190193153 (61919 converted, 2556576 overflowed, 0 dud, 
+                    140401503 GC'd, 47173155 fizzled)
+  Total   time   65.95s  (  1.28s elapsed)
+  Productivity  47.8% of total user, 2461.5% of total elapsed
 ~~~~
+
+# Życie iskry 
+
+![spark lifecycle](spark-lifecycle800.png "Life cycle of a spark")
+
 
 # Lepiej
 

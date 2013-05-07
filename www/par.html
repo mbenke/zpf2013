@@ -87,6 +87,8 @@ $ ./sudoku1 sudoku17.1000.txt +RTS -s
     rnf a <span class="fu">=</span> a <span class="ot">`seq`</span> ()
 
 <span class="ot">deepseq ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b
+deepseq a b <span class="fu">=</span> rnf a <span class="ot">`seq`</span> b
+
 <span class="ot">force ::</span>  <span class="dt">NFData</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> a
 force x <span class="fu">=</span> deepseq x x
 
@@ -154,7 +156,7 @@ $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
 </ul>
 <h1 id="section"></h1>
 <div class="figure">
-<img src="spark-lifecycle.png" title="Life cycle of a spark" />
+<img src="spark-lifecycle800.png" title="Life cycle of a spark" alt="spark lifecycle" /><p class="caption">spark lifecycle</p>
 </div>
 <h1 id="sudoku2.hs">sudoku2.hs</h1>
 <pre><code>  SPARKS: 2 (1 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 1 fizzled)
@@ -240,16 +242,22 @@ parFib n <span class="fu">=</span> p <span class="ot">`par`</span> q <span class
 
 <span class="ot">main ::</span> <span class="dt">IO</span> ()
 main <span class="fu">=</span> <span class="fu">print</span> <span class="fu">$</span> parFib <span class="dv">40</span></code></pre>
-<pre><code>$ ./badfib +RTS -N2 -s -RTS
+<pre><code>@azor:
+./badfib +RTS -N2 -s -RTS
+  SPARKS: 165597322 (16 converted, 14860689 overflowed, 0 dud, 
+                     150628741 GC&#39;d, 107876 fizzled)
+  Total   time    7.18s  (  3.65s elapsed)
+  Productivity  71.8% of total user, 141.5% of total elapsed
 
-  3,321,319,864 bytes allocated in the heap
-      1,173,852 bytes copied during GC
-  Parallel GC work balance: 1.75 (277333 / 158455, ideal 2)
-
-  SPARKS: 166058569 (222 converted, 113019108 overflowed, 0 dud, 
-                     51863340 GC&#39;d, 1175899 fizzled)
-  Total   time    5.49s  (  2.75s elapsed)
-  Productivity  90.2% of total user, 180.0% of total elapsed</code></pre>
+N60:
+ SPARKS: 190193153 (61919 converted, 2556576 overflowed, 0 dud, 
+                    140401503 GC&#39;d, 47173155 fizzled)
+  Total   time   65.95s  (  1.28s elapsed)
+  Productivity  47.8% of total user, 2461.5% of total elapsed</code></pre>
+<h1 id="życie-iskry">Życie iskry</h1>
+<div class="figure">
+<img src="spark-lifecycle800.png" title="Life cycle of a spark" alt="spark lifecycle" /><p class="caption">spark lifecycle</p>
+</div>
 <h1 id="lepiej">Lepiej</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cutoff ::</span> <span class="dt">Int</span>
 cutoff <span class="fu">=</span> <span class="dv">20</span>
