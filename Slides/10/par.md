@@ -358,13 +358,18 @@ fib n = fib (n - 1) + fib (n - 2)
 ~~~~
 
 ~~~~
-         911,348 bytes allocated in the heap
-              20 bytes copied during GC
+./parfib +RTS -N60 -s -RTS
+ SPARKS: 118393 (42619 converted, 0 overflowed, 0 dud, 
+                 11241 GC'd, 64533 fizzled)
 
-SPARKS: 29892 (21 converted, 5065 overflowed, 0 dud, 18 GC'd, 24788 fizzled)
+  Total   time   17.91s  (  0.33s elapsed)
+  Productivity  98.5% of total user, 5291.5% of total elapsed
 
-Total   time    1.73s  (  0.87s elapsed)
-Productivity 100.0% of total user, 198.8% of total elapsed
+-N60, cutoff=15
+SPARKS: 1303880 (241672 converted, 0 overflowed, 0 dud, 
+		 163591 GC'd, 898617 fizzled)
+  Total   time   18.32s  (  0.41s elapsed)
+  Productivity  98.1% of total user, 4366.7% of total elapsed
 ~~~~
 
 # Threadscope

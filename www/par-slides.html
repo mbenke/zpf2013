@@ -321,13 +321,18 @@ parFib n <span class="fu">=</span> p <span class="ot">`par`</span> q <span class
 
 fib n <span class="fu">|</span> n<span class="fu">&lt;</span><span class="dv">2</span> <span class="fu">=</span> n
 fib n <span class="fu">=</span> fib (n <span class="fu">-</span> <span class="dv">1</span>) <span class="fu">+</span> fib (n <span class="fu">-</span> <span class="dv">2</span>)</code></pre>
-<pre><code>         911,348 bytes allocated in the heap
-              20 bytes copied during GC
+<pre><code>./parfib +RTS -N60 -s -RTS
+ SPARKS: 118393 (42619 converted, 0 overflowed, 0 dud, 
+                 11241 GC&#39;d, 64533 fizzled)
 
-SPARKS: 29892 (21 converted, 5065 overflowed, 0 dud, 18 GC&#39;d, 24788 fizzled)
+  Total   time   17.91s  (  0.33s elapsed)
+  Productivity  98.5% of total user, 5291.5% of total elapsed
 
-Total   time    1.73s  (  0.87s elapsed)
-Productivity 100.0% of total user, 198.8% of total elapsed</code></pre>
+-N60, cutoff=15
+SPARKS: 1303880 (241672 converted, 0 overflowed, 0 dud, 
+         163591 GC&#39;d, 898617 fizzled)
+  Total   time   18.32s  (  0.41s elapsed)
+  Productivity  98.1% of total user, 4366.7% of total elapsed</code></pre>
 </div>
 <div class="section slide level1" id="threadscope-1">
 <h1>Threadscope</h1>
