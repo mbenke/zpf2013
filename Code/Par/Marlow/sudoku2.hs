@@ -12,8 +12,8 @@ main = do
     let (as,bs) = splitAt (length grids `div` 2) grids
 
     evaluate $ runEval $ do
-       a <- rpar (deep (map solve as))
-       b <- rpar (deep (map solve bs))
+       a <- rpar (force (map solve as))
+       b <- rpar (force (map solve bs))
        rseq a
        rseq b
        return ()
