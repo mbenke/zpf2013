@@ -366,11 +366,12 @@ fib n = fib (n - 1) + fib (n - 2)
   Productivity  98.5% of total user, 5291.5% of total elapsed
 
 -N60, cutoff=15
-SPARKS: 1303880 (241672 converted, 0 overflowed, 0 dud, 
-		 163591 GC'd, 898617 fizzled)
-  Total   time   18.32s  (  0.41s elapsed)
-  Productivity  98.1% of total user, 4366.7% of total elapsed
+  SPARKS: 974244 (164888 converted, 0 overflowed, 0 dud, 
+                  156448 GC'd, 652908 fizzled)
+  Total   time   13.59s  (  0.28s elapsed)
+  Productivity  97.6% of total user, 4746.9% of total elapsed
 ~~~~
+
 
 # Threadscope
 
