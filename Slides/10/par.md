@@ -372,6 +372,13 @@ fib n = fib (n - 1) + fib (n - 2)
   Productivity  97.6% of total user, 4746.9% of total elapsed
 ~~~~
 
+# Ćwiczenie
+
+* Przepisz powyższy program uzywając monady `Eval`
+
+* Sprawdź jakie wartości cutoff będą dobre dla róznych stopni równoległosci N
+
+* Wypróbuj inne strategie obliczeń
 
 # Threadscope
 
@@ -423,7 +430,7 @@ safe x (c : y) n = x /= c && x /= c + n
 
 ~~~~ {.haskell}
 import Control.Concurrent
--- forkIO LL IO() -> IO ThreadId
+-- forkIO :: IO() -> IO ThreadId
 import Control.Monad
 import System.IO
 
@@ -440,9 +447,9 @@ Jednoelementowy bufor/semafor:
 
 ~~~~ {.haskell}
 data MVar a
-newMVar :: a -> IO (MVar a)
+newMVar  :: a -> IO (MVar a)
 takeMVar ::  MVar a -> IO a 
-putMVar :: MVar a -> a -> IO ()
+putMVar  :: MVar a -> a -> IO ()
 ~~~~
 
 `stdout` jest chronione MVar, dlatego w poprzednim  przykładzie A i B rozkładają się w miarę równo.

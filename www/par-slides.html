@@ -329,10 +329,18 @@ fib n <span class="fu">=</span> fib (n <span class="fu">-</span> <span class="dv
   Productivity  98.5% of total user, 5291.5% of total elapsed
 
 -N60, cutoff=15
-SPARKS: 1303880 (241672 converted, 0 overflowed, 0 dud, 
-         163591 GC&#39;d, 898617 fizzled)
-  Total   time   18.32s  (  0.41s elapsed)
-  Productivity  98.1% of total user, 4366.7% of total elapsed</code></pre>
+  SPARKS: 974244 (164888 converted, 0 overflowed, 0 dud, 
+                  156448 GC&#39;d, 652908 fizzled)
+  Total   time   13.59s  (  0.28s elapsed)
+  Productivity  97.6% of total user, 4746.9% of total elapsed</code></pre>
+</div>
+<div class="section slide level1" id="ćwiczenie">
+<h1>Ćwiczenie</h1>
+<ul>
+<li><p>Przepisz powyższy program uzywając monady <code>Eval</code></p></li>
+<li><p>Sprawdź jakie wartości cutoff będą dobre dla róznych stopni równoległosci N</p></li>
+<li><p>Wypróbuj inne strategie obliczeń</p></li>
+</ul>
 </div>
 <div class="section slide level1" id="threadscope-1">
 <h1>Threadscope</h1>
@@ -352,7 +360,7 @@ $ ~/.cabal/bin/threadscope parfib.eventlog</code></pre>
 <img src="parfib.png" title="Threadscope" alt="threadscope:badfib" /><p class="caption">threadscope:badfib</p>
 </div>
 </div>
-<div class="section slide level1" id="ćwiczenie">
+<div class="section slide level1" id="ćwiczenie-1">
 <h1>Ćwiczenie</h1>
 <p>Napisz funkcję rozmieszczającą n hetmanów na szachownicy n*n</p>
 <ul>
@@ -377,7 +385,7 @@ safe x (c <span class="fu">:</span> y) n <span class="fu">=</span> x <span class
 <div class="section slide level1" id="współbieżność">
 <h1>Współbieżność</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Control.Concurrent
-<span class="co">-- forkIO LL IO() -&gt; IO ThreadId</span>
+<span class="co">-- forkIO :: IO() -&gt; IO ThreadId</span>
 <span class="kw">import</span> Control.Monad
 <span class="kw">import</span> System.IO
 
@@ -391,9 +399,9 @@ main <span class="fu">=</span> <span class="kw">do</span>
 <h1>Synchronizacja: <code>MVar</code></h1>
 <p>Jednoelementowy bufor/semafor:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">MVar</span> a
-<span class="ot">newMVar ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">MVar</span> a)
+<span class="ot">newMVar  ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">MVar</span> a)
 <span class="ot">takeMVar ::</span>  <span class="dt">MVar</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a 
-<span class="ot">putMVar ::</span> <span class="dt">MVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
+<span class="ot">putMVar  ::</span> <span class="dt">MVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
 <p><code>stdout</code> jest chronione MVar, dlatego w poprzednim przykładzie A i B rozkładają się w miarę równo.</p>
 </div>
 <div class="section slide level1" id="asynchroniczne-io">
