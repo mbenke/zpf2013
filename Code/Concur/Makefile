@@ -1,4 +1,6 @@
-BINFILES=fork geturls geturls1 geturls2 Par1
+BINFILES=fork geturls geturls1 geturls2 Par1\
+ IORef1 IORef2 IORef3 IORef4 stm1
+
 GHCOPTS=-O2 -rtsopts -threaded
 
 %: %.hs
