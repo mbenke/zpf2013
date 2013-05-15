@@ -144,151 +144,6 @@ downloaded: http://www.yahoo.com (79788 bytes, 0.020s)
 Dlaczego wyniki sa w innej kolejnosci niz zapytania?
 Przecież `mapM` jest sekwencyjne?
 
-# Równoległość przepływu danych: monada Par
-
-Element pośredni pomiędzy `Eval` a `Concurrent`: jawne tworzenie wątków, 
-ale z zachowaniem determinizmu
-
-~~~~ {.haskell}
-newtype Par a
-instance Functor Par
-instance Applicative Par
-instance Monad Par
-
-runPar :: Par a -> a
-fork :: Par () -> Par ()
-~~~~
-
-# Komunikacja --- IVar
-
-~~~~ {.haskell}
-data IVar a
-new :: Par (IVar a)
-put :: NFData a => IVar a -> a -> Par ()
-get :: IVar a -> Par a
-~~~~
-
-* `new` tworzy nową , pustą zmienną
-
-* `put` wypełnia ją wartością (mozna tylko raz)
-
-* `get` pobiera wartość, ewentualnie czekając
-
-# Równoległość przepływu danych: monada Par
- 
-Program mozemy przedstawic jako sieć (graf) przepływu danych, 
-gdzie wierzchołki reprezentują operacje, a krawędzie zależnosci.
-
-![](dataflow-network.png "Dataflow network")
-
-w powyższym grafie `j` potrzebuje wyników `g` oraz `h`, te zaś potrzebują wyniku `f` natomiast sa od siebie niezależne.
-
-Graf zaleznosci nie musi być statyczny; 
-może być budowany dynamicznie w zależności od potrzeb.
-
-# Kod
-
-~~~~ {.haskell}
-network :: IVar In -> Par Out
-network inp = do
- [vf,vg,vh] <- sequence [new,new,new]
- 
- fork $ do x <- get inp
-           put vf (f x)
-  
- fork $ do x <- get vf
-           put vg (g x)
- 
- fork $ do x <- get vf
-           put vh (h x)
- 
- x <- get vg
- y <- get vh
- return (j x y)
-
-f x = x+1
-g x = x+x
-h x = x*x
-j = (,) 
-main = print $ runNetwork 2
-~~~~
-
-
-```
-$ ./Par1
-(6,9)
-```
-
-# Sudoku z użyciem `Par`
-
-~~~~ {.haskell}
-main = do
-    [f] <- getArgs
-    grids <- fmap lines $ readFile f
-
-    let (as,bs) = splitAt (length grids `div` 2) grids
-
-    print $ length $ filter isJust $ runPar $ do
-       i1 <- new
-       i2 <- new
-       fork $ put i1 (map solve as)
-       fork $ put i2 (map solve bs)
-       as' <- get i1
-       bs' <- get i2
-       return (as' ++ bs')
-
---   Productivity  96.3% of total user, 141.2% of total elapsed
-~~~~
-
-# parMap
-
-~~~~ {.haskell}
-spawn :: NFData a => Par a -> Par (IVar a)
-spawn p = do
-      i <- new
-      fork (p >>= put i)
-      return i
-
-parMapM f as = do
-	ibs <- mapM (spawn . f) as
-	mapM get ibs
-
--- Control.Monad.Par.parMap
-main = do
-    [f] <- getArgs
-    grids <- fmap lines $ readFile f
-    print (length (filter isJust (runPar $ parMap solve grids)))
-
--- Productivity  95.8% of total user, 173.1% of total elapsed
-~~~~
-
-# Ćwiczenie: nqueens w róznych wariantach
-
-Przerób rozwiązanie nqueens z poprzednich zajęć (z `Eval`) na użycie `Par`.
-
-Toż z `forkIO+MVar`
-
-Uwaga na granularność!
-
-
-# Budowanie abstrakcji przy użyciu MVar -- kanały
-
-`MVar`: jednoelementowy bufor/semafor:
-
-~~~~ {.haskell}
-newMVar  :: a -> IO (MVar a)
-takeMVar ::  MVar a -> IO a 
-putMVar  :: MVar a -> a -> IO ()
-~~~~
-
-`Chan`: nieograniczony bufor (kanał)
-
-~~~~ {.haskell}
-data Chan a
-newChan   :: IO ( Chan a )
-readChan  :: Chan a -> IO a
-writeChan :: Chan a -> a -> IO ()
-~~~~
 
 # IORef
 
@@ -515,10 +370,158 @@ delay n = delay $! n-1
 
 Zaimplementuj `withdraw`, `deposit` przy pomocy STM.
 
+
+# Równoległość przepływu danych: monada Par
+
+Element pośredni pomiędzy `Eval` a `Concurrent`: jawne tworzenie wątków, 
+ale z zachowaniem determinizmu
+
+~~~~ {.haskell}
+newtype Par a
+instance Functor Par
+instance Applicative Par
+instance Monad Par
+
+runPar :: Par a -> a
+fork :: Par () -> Par ()
+~~~~
+
+# Komunikacja --- IVar
+
+~~~~ {.haskell}
+data IVar a
+new :: Par (IVar a)
+put :: NFData a => IVar a -> a -> Par ()
+get :: IVar a -> Par a
+~~~~
+
+* `new` tworzy nową , pustą zmienną
+
+* `put` wypełnia ją wartością (mozna tylko raz)
+
+* `get` pobiera wartość, ewentualnie czekając
+
+# Równoległość przepływu danych: monada Par
+ 
+Program mozemy przedstawic jako sieć (graf) przepływu danych, 
+gdzie wierzchołki reprezentują operacje, a krawędzie zależnosci.
+
+![](dataflow-network.png "Dataflow network")
+
+w powyższym grafie `j` potrzebuje wyników `g` oraz `h`, te zaś potrzebują wyniku `f` natomiast sa od siebie niezależne.
+
+Graf zaleznosci nie musi być statyczny; 
+może być budowany dynamicznie w zależności od potrzeb.
+
+# Kod
+
+~~~~ {.haskell}
+network :: IVar In -> Par Out
+network inp = do
+ [vf,vg,vh] <- sequence [new,new,new]
+ 
+ fork $ do x <- get inp
+           put vf (f x)
+  
+ fork $ do x <- get vf
+           put vg (g x)
+ 
+ fork $ do x <- get vf
+           put vh (h x)
+ 
+ x <- get vg
+ y <- get vh
+ return (j x y)
+
+f x = x+1
+g x = x+x
+h x = x*x
+j = (,) 
+main = print $ runNetwork 2
+~~~~
+
+
+```
+$ ./Par1
+(6,9)
+```
+
+# Sudoku z użyciem `Par`
+
+~~~~ {.haskell}
+main = do
+    [f] <- getArgs
+    grids <- fmap lines $ readFile f
+
+    let (as,bs) = splitAt (length grids `div` 2) grids
+
+    print $ length $ filter isJust $ runPar $ do
+       i1 <- new
+       i2 <- new
+       fork $ put i1 (map solve as)
+       fork $ put i2 (map solve bs)
+       as' <- get i1
+       bs' <- get i2
+       return (as' ++ bs')
+
+--   Productivity  96.3% of total user, 141.2% of total elapsed
+~~~~
+
+# parMap
+
+~~~~ {.haskell}
+spawn :: NFData a => Par a -> Par (IVar a)
+spawn p = do
+      i <- new
+      fork (p >>= put i)
+      return i
+
+parMapM f as = do
+	ibs <- mapM (spawn . f) as
+	mapM get ibs
+
+-- Control.Monad.Par.parMap
+main = do
+    [f] <- getArgs
+    grids <- fmap lines $ readFile f
+    print (length (filter isJust (runPar $ parMap solve grids)))
+
+-- Productivity  95.8% of total user, 173.1% of total elapsed
+~~~~
+
+# Ćwiczenie: nqueens w róznych wariantach
+
+Przerób rozwiązanie nqueens z poprzednich zajęć (z `Eval`) na użycie `Par`.
+
+Toż z `forkIO+MVar`
+
+Uwaga na granularność!
+
+
+
 # Koniec
 
 ~~~~ {.haskell}
 
+~~~~
+
+# Budowanie abstrakcji przy użyciu MVar -- kanały
+
+`MVar`: jednoelementowy bufor/semafor:
+
+~~~~ {.haskell}
+newMVar  :: a -> IO (MVar a)
+takeMVar ::  MVar a -> IO a 
+putMVar  :: MVar a -> a -> IO ()
+~~~~
+
+`Chan`: nieograniczony bufor (kanał)
+
+~~~~ {.haskell}
+data Chan a
+newChan   :: IO ( Chan a )
+readChan  :: Chan a -> IO a
+writeChan :: Chan a -> a -> IO ()
 ~~~~
 
 # Asynchroniczne wyjątki
