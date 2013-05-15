@@ -156,11 +156,15 @@ modifyIORef :: IORef a -> (a -> a) -> IO ()
 ~~~~
 
 ~~~~ {.haskell}
-import Data.IORef
+incRef :: IORef Int -> IO ()
+incRef var = do { val <- readIORef var
+                ; threadDelay 1000         
+       	        ; writeIORef var (val+1) }
 
 main = do
-  px <- newIORef undefined
-  writeIORef px 42
+  px <- newIORef 0
+  incRef px
+  incRef px
   readIORef px >>= print
 ~~~~
 

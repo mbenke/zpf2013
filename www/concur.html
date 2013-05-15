@@ -134,11 +134,15 @@ downloaded: http://www.yahoo.com (79788 bytes, 0.020s)</code></pre>
 <span class="ot">readIORef ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
 <span class="ot">writeIORef ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 <span class="ot">modifyIORef ::</span> <span class="dt">IORef</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import</span> Data.IORef
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">incRef ::</span> <span class="dt">IORef</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+incRef var <span class="fu">=</span> <span class="kw">do</span> { val <span class="ot">&lt;-</span> readIORef var
+                ; threadDelay <span class="dv">1000</span>         
+                ; writeIORef var (val<span class="fu">+</span><span class="dv">1</span>) }
 
 main <span class="fu">=</span> <span class="kw">do</span>
-  px <span class="ot">&lt;-</span> newIORef <span class="fu">undefined</span>
-  writeIORef px <span class="dv">42</span>
+  px <span class="ot">&lt;-</span> newIORef <span class="dv">0</span>
+  incRef px
+  incRef px
   readIORef px <span class="fu">&gt;&gt;=</span> <span class="fu">print</span></code></pre>
 <pre><code>$ ./IORef1
 2</code></pre>
