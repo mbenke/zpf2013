@@ -1,6 +1,6 @@
 % Zaawansowane programowanie funkcyjne
 % Marcin Benke
-% 20 lutego 2013
+% 15 maja 2013
 
 # Równoległość a współbieżność
 
