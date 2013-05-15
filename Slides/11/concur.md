@@ -371,6 +371,63 @@ delay n = delay $! n-1
 Zaimplementuj `withdraw`, `deposit` przy pomocy STM.
 
 
+# Blokowanie: `retry`
+
+
+~~~~ {.haskell}
+retry :: STM a
+
+limitedWithdraw :: Account -> Int -> STM ()
+limitedWithdraw acc amount = do
+   bal <- readTVar acc
+   if amount > 0 && amount > bal
+      then retry
+      else writeTVar acc (bal - amount) 
+~~~~
+
+Gdy brak srodków zawieszamy transakcję i próbujemy później
+
+System wie jakie zmienne transakcja czyta i moze ją wznowic po zapisie do którejś z tych zmiennych (tu: `amount`)
+
+# Ładniej: `check`
+
+~~~~ {.haskell}
+limitedWithdraw :: Account -> Int -> STM ()
+limitedWithdraw acc amount = do
+   bal <- readTVar acc
+   check $ amount > 0 && amount > bal
+   writeTVar acc (bal - amount) 
+
+check :: Bool -> STM ()
+check True = return ()
+check False = retry
+~~~~
+
+NB
+
+~~~~ {.haskell}
+guard           :: (MonadPlus m) => Bool -> m ()
+guard True      =  return ()
+guard False     =  mzero
+~~~~
+
+# Wybór
+
+Pobierz z konta A, gdy brak środków, spróbuj konta B
+
+~~~~ {.haskell}
+limitedWithdraw2 :: Account -> Account -> Int -> STM ()
+limitedWithdraw2 acc1 acc2 amt =
+   limitedWithdraw acc1 amt `orElse` 
+   limitedWithdraw acc2 amt
+~~~~
+
+`orElse a1 a2`
+
+* wykonaj `a1`
+* gdy `a1` blokuje (`retry`), próbuje `a2`,
+* gdy i to blokuje, cała transakcja blokuje.
+
 # Równoległość przepływu danych: monada Par
 
 Element pośredni pomiędzy `Eval` a `Concurrent`: jawne tworzenie wątków, 

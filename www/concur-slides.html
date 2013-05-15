@@ -148,122 +148,6 @@ downloaded: http://www.wikipedia.com/wiki/Shovel (82803 bytes, 0.012s)
 downloaded: http://www.yahoo.com (79788 bytes, 0.020s)</code></pre>
 <p>Dlaczego wyniki sa w innej kolejnosci niz zapytania? Przecież <code>mapM</code> jest sekwencyjne?</p>
 </div>
-<div class="section slide level1" id="równoległość-przepływu-danych-monada-par">
-<h1>Równoległość przepływu danych: monada Par</h1>
-<p>Element pośredni pomiędzy <code>Eval</code> a <code>Concurrent</code>: jawne tworzenie wątków, ale z zachowaniem determinizmu</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Par</span> a
-<span class="kw">instance</span> <span class="kw">Functor</span> <span class="dt">Par</span>
-<span class="kw">instance</span> <span class="kw">Applicative</span> <span class="dt">Par</span>
-<span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Par</span>
-
-<span class="ot">runPar ::</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> a
-<span class="ot">fork ::</span> <span class="dt">Par</span> () <span class="ot">-&gt;</span> <span class="dt">Par</span> ()</code></pre>
-</div>
-<div class="section slide level1" id="komunikacja-----ivar">
-<h1>Komunikacja --- IVar</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">IVar</span> a
-<span class="ot">new ::</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
-<span class="ot">put ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> ()
-<span class="ot">get ::</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> a</code></pre>
-<ul>
-<li><p><code>new</code> tworzy nową , pustą zmienną</p></li>
-<li><p><code>put</code> wypełnia ją wartością (mozna tylko raz)</p></li>
-<li><p><code>get</code> pobiera wartość, ewentualnie czekając</p></li>
-</ul>
-</div>
-<div class="section slide level1" id="równoległość-przepływu-danych-monada-par-1">
-<h1>Równoległość przepływu danych: monada Par</h1>
-<p>Program mozemy przedstawic jako sieć (graf) przepływu danych, gdzie wierzchołki reprezentują operacje, a krawędzie zależnosci.</p>
-<div class="figure">
-<img src="dataflow-network.png" title="Dataflow network" />
-</div>
-<p>w powyższym grafie <code>j</code> potrzebuje wyników <code>g</code> oraz <code>h</code>, te zaś potrzebują wyniku <code>f</code> natomiast sa od siebie niezależne.</p>
-<p>Graf zaleznosci nie musi być statyczny; może być budowany dynamicznie w zależności od potrzeb.</p>
-</div>
-<div class="section slide level1" id="kod">
-<h1>Kod</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">network ::</span> <span class="dt">IVar</span> <span class="dt">In</span> <span class="ot">-&gt;</span> <span class="dt">Par</span> <span class="dt">Out</span>
-network inp <span class="fu">=</span> <span class="kw">do</span>
- [vf,vg,vh] <span class="ot">&lt;-</span> <span class="fu">sequence</span> [new,new,new]
- 
- fork <span class="fu">$</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> get inp
-           put vf (f x)
-  
- fork <span class="fu">$</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> get vf
-           put vg (g x)
- 
- fork <span class="fu">$</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> get vf
-           put vh (h x)
- 
- x <span class="ot">&lt;-</span> get vg
- y <span class="ot">&lt;-</span> get vh
- <span class="fu">return</span> (j x y)
-
-f x <span class="fu">=</span> x<span class="fu">+</span><span class="dv">1</span>
-g x <span class="fu">=</span> x<span class="fu">+</span>x
-h x <span class="fu">=</span> x<span class="fu">*</span>x
-j <span class="fu">=</span> (,) 
-main <span class="fu">=</span> <span class="fu">print</span> <span class="fu">$</span> runNetwork <span class="dv">2</span></code></pre>
-<pre><code>$ ./Par1
-(6,9)</code></pre>
-</div>
-<div class="section slide level1" id="sudoku-z-użyciem-par">
-<h1>Sudoku z użyciem <code>Par</code></h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
-    [f] <span class="ot">&lt;-</span> getArgs
-    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
-
-    <span class="kw">let</span> (as,bs) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> grids <span class="ot">`div`</span> <span class="dv">2</span>) grids
-
-    <span class="fu">print</span> <span class="fu">$</span> <span class="fu">length</span> <span class="fu">$</span> <span class="fu">filter</span> isJust <span class="fu">$</span> runPar <span class="fu">$</span> <span class="kw">do</span>
-       i1 <span class="ot">&lt;-</span> new
-       i2 <span class="ot">&lt;-</span> new
-       fork <span class="fu">$</span> put i1 (<span class="fu">map</span> solve as)
-       fork <span class="fu">$</span> put i2 (<span class="fu">map</span> solve bs)
-       as&#39; <span class="ot">&lt;-</span> get i1
-       bs&#39; <span class="ot">&lt;-</span> get i2
-       <span class="fu">return</span> (as&#39; <span class="fu">++</span> bs&#39;)
-
-<span class="co">--   Productivity  96.3% of total user, 141.2% of total elapsed</span></code></pre>
-</div>
-<div class="section slide level1" id="parmap">
-<h1>parMap</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">spawn ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
-spawn p <span class="fu">=</span> <span class="kw">do</span>
-      i <span class="ot">&lt;-</span> new
-      fork (p <span class="fu">&gt;&gt;=</span> put i)
-      <span class="fu">return</span> i
-
-parMapM f as <span class="fu">=</span> <span class="kw">do</span>
-    ibs <span class="ot">&lt;-</span> <span class="fu">mapM</span> (spawn <span class="fu">.</span> f) as
-    <span class="fu">mapM</span> get ibs
-
-<span class="co">-- Control.Monad.Par.parMap</span>
-main <span class="fu">=</span> <span class="kw">do</span>
-    [f] <span class="ot">&lt;-</span> getArgs
-    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
-    <span class="fu">print</span> (<span class="fu">length</span> (<span class="fu">filter</span> isJust (runPar <span class="fu">$</span> parMap solve grids)))
-
-<span class="co">-- Productivity  95.8% of total user, 173.1% of total elapsed</span></code></pre>
-</div>
-<div class="section slide level1" id="ćwiczenie-nqueens-w-róznych-wariantach">
-<h1>Ćwiczenie: nqueens w róznych wariantach</h1>
-<p>Przerób rozwiązanie nqueens z poprzednich zajęć (z <code>Eval</code>) na użycie <code>Par</code>.</p>
-<p>Toż z <code>forkIO+MVar</code></p>
-<p>Uwaga na granularność!</p>
-</div>
-<div class="section slide level1" id="budowanie-abstrakcji-przy-użyciu-mvar----kanały">
-<h1>Budowanie abstrakcji przy użyciu MVar -- kanały</h1>
-<p><code>MVar</code>: jednoelementowy bufor/semafor:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">newMVar  ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">MVar</span> a)
-<span class="ot">takeMVar ::</span>  <span class="dt">MVar</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a 
-<span class="ot">putMVar  ::</span> <span class="dt">MVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
-<p><code>Chan</code>: nieograniczony bufor (kanał)</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Chan</span> a
-<span class="ot">newChan   ::</span> <span class="dt">IO</span> ( <span class="dt">Chan</span> a )
-<span class="ot">readChan  ::</span> <span class="dt">Chan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
-<span class="ot">writeChan ::</span> <span class="dt">Chan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
-</div>
 <div class="section slide level1" id="ioref">
 <h1>IORef</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">IORef</span> a
@@ -433,9 +317,168 @@ delay n <span class="fu">=</span> delay <span class="fu">$!</span> n<span class=
 <h1>Ćwiczenie</h1>
 <p>Zaimplementuj <code>withdraw</code>, <code>deposit</code> przy pomocy STM.</p>
 </div>
+<div class="section slide level1" id="blokowanie-retry">
+<h1>Blokowanie: <code>retry</code></h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">retry ::</span> <span class="dt">STM</span> a
+
+<span class="ot">limitedWithdraw ::</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">STM</span> ()
+limitedWithdraw acc amount <span class="fu">=</span> <span class="kw">do</span>
+   bal <span class="ot">&lt;-</span> readTVar acc
+   <span class="kw">if</span> amount <span class="fu">&gt;</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> amount <span class="fu">&gt;</span> bal
+      <span class="kw">then</span> retry
+      <span class="kw">else</span> writeTVar acc (bal <span class="fu">-</span> amount) </code></pre>
+<p>Gdy brak srodków zawieszamy transakcję i próbujemy później</p>
+<p>System wie jakie zmienne transakcja czyta i moze ją wznowic po zapisie do którejś z tych zmiennych (tu: <code>amount</code>)</p>
+</div>
+<div class="section slide level1" id="ładniej-check">
+<h1>Ładniej: <code>check</code></h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">limitedWithdraw ::</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">STM</span> ()
+limitedWithdraw acc amount <span class="fu">=</span> <span class="kw">do</span>
+   bal <span class="ot">&lt;-</span> readTVar acc
+   check <span class="fu">$</span> amount <span class="fu">&gt;</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> amount <span class="fu">&gt;</span> bal
+   writeTVar acc (bal <span class="fu">-</span> amount) 
+
+<span class="ot">check ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">STM</span> ()
+check <span class="kw">True</span> <span class="fu">=</span> <span class="fu">return</span> ()
+check <span class="kw">False</span> <span class="fu">=</span> retry</code></pre>
+<p>NB</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">guard           ::</span> (<span class="dt">MonadPlus</span> m) <span class="ot">=&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> m ()
+guard <span class="kw">True</span>      <span class="fu">=</span>  <span class="fu">return</span> ()
+guard <span class="kw">False</span>     <span class="fu">=</span>  mzero</code></pre>
+</div>
+<div class="section slide level1" id="wybór">
+<h1>Wybór</h1>
+<p>Pobierz z konta A, gdy brak środków, spróbuj konta B</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">limitedWithdraw2 ::</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">STM</span> ()
+limitedWithdraw2 acc1 acc2 amt <span class="fu">=</span>
+   limitedWithdraw acc1 amt <span class="ot">`orElse`</span> 
+   limitedWithdraw acc2 amt</code></pre>
+<p><code>orElse a1 a2</code></p>
+<ul>
+<li>wykonaj <code>a1</code></li>
+<li>gdy <code>a1</code> blokuje (<code>retry</code>), próbuje <code>a2</code>,</li>
+<li>gdy i to blokuje, cała transakcja blokuje.</li>
+</ul>
+</div>
+<div class="section slide level1" id="równoległość-przepływu-danych-monada-par">
+<h1>Równoległość przepływu danych: monada Par</h1>
+<p>Element pośredni pomiędzy <code>Eval</code> a <code>Concurrent</code>: jawne tworzenie wątków, ale z zachowaniem determinizmu</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Par</span> a
+<span class="kw">instance</span> <span class="kw">Functor</span> <span class="dt">Par</span>
+<span class="kw">instance</span> <span class="kw">Applicative</span> <span class="dt">Par</span>
+<span class="kw">instance</span> <span class="kw">Monad</span> <span class="dt">Par</span>
+
+<span class="ot">runPar ::</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> a
+<span class="ot">fork ::</span> <span class="dt">Par</span> () <span class="ot">-&gt;</span> <span class="dt">Par</span> ()</code></pre>
+</div>
+<div class="section slide level1" id="komunikacja-----ivar">
+<h1>Komunikacja --- IVar</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">IVar</span> a
+<span class="ot">new ::</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
+<span class="ot">put ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> ()
+<span class="ot">get ::</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> a</code></pre>
+<ul>
+<li><p><code>new</code> tworzy nową , pustą zmienną</p></li>
+<li><p><code>put</code> wypełnia ją wartością (mozna tylko raz)</p></li>
+<li><p><code>get</code> pobiera wartość, ewentualnie czekając</p></li>
+</ul>
+</div>
+<div class="section slide level1" id="równoległość-przepływu-danych-monada-par-1">
+<h1>Równoległość przepływu danych: monada Par</h1>
+<p>Program mozemy przedstawic jako sieć (graf) przepływu danych, gdzie wierzchołki reprezentują operacje, a krawędzie zależnosci.</p>
+<div class="figure">
+<img src="dataflow-network.png" title="Dataflow network" />
+</div>
+<p>w powyższym grafie <code>j</code> potrzebuje wyników <code>g</code> oraz <code>h</code>, te zaś potrzebują wyniku <code>f</code> natomiast sa od siebie niezależne.</p>
+<p>Graf zaleznosci nie musi być statyczny; może być budowany dynamicznie w zależności od potrzeb.</p>
+</div>
+<div class="section slide level1" id="kod">
+<h1>Kod</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">network ::</span> <span class="dt">IVar</span> <span class="dt">In</span> <span class="ot">-&gt;</span> <span class="dt">Par</span> <span class="dt">Out</span>
+network inp <span class="fu">=</span> <span class="kw">do</span>
+ [vf,vg,vh] <span class="ot">&lt;-</span> <span class="fu">sequence</span> [new,new,new]
+ 
+ fork <span class="fu">$</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> get inp
+           put vf (f x)
+  
+ fork <span class="fu">$</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> get vf
+           put vg (g x)
+ 
+ fork <span class="fu">$</span> <span class="kw">do</span> x <span class="ot">&lt;-</span> get vf
+           put vh (h x)
+ 
+ x <span class="ot">&lt;-</span> get vg
+ y <span class="ot">&lt;-</span> get vh
+ <span class="fu">return</span> (j x y)
+
+f x <span class="fu">=</span> x<span class="fu">+</span><span class="dv">1</span>
+g x <span class="fu">=</span> x<span class="fu">+</span>x
+h x <span class="fu">=</span> x<span class="fu">*</span>x
+j <span class="fu">=</span> (,) 
+main <span class="fu">=</span> <span class="fu">print</span> <span class="fu">$</span> runNetwork <span class="dv">2</span></code></pre>
+<pre><code>$ ./Par1
+(6,9)</code></pre>
+</div>
+<div class="section slide level1" id="sudoku-z-użyciem-par">
+<h1>Sudoku z użyciem <code>Par</code></h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
+    [f] <span class="ot">&lt;-</span> getArgs
+    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
+
+    <span class="kw">let</span> (as,bs) <span class="fu">=</span> <span class="fu">splitAt</span> (<span class="fu">length</span> grids <span class="ot">`div`</span> <span class="dv">2</span>) grids
+
+    <span class="fu">print</span> <span class="fu">$</span> <span class="fu">length</span> <span class="fu">$</span> <span class="fu">filter</span> isJust <span class="fu">$</span> runPar <span class="fu">$</span> <span class="kw">do</span>
+       i1 <span class="ot">&lt;-</span> new
+       i2 <span class="ot">&lt;-</span> new
+       fork <span class="fu">$</span> put i1 (<span class="fu">map</span> solve as)
+       fork <span class="fu">$</span> put i2 (<span class="fu">map</span> solve bs)
+       as&#39; <span class="ot">&lt;-</span> get i1
+       bs&#39; <span class="ot">&lt;-</span> get i2
+       <span class="fu">return</span> (as&#39; <span class="fu">++</span> bs&#39;)
+
+<span class="co">--   Productivity  96.3% of total user, 141.2% of total elapsed</span></code></pre>
+</div>
+<div class="section slide level1" id="parmap">
+<h1>parMap</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">spawn ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
+spawn p <span class="fu">=</span> <span class="kw">do</span>
+      i <span class="ot">&lt;-</span> new
+      fork (p <span class="fu">&gt;&gt;=</span> put i)
+      <span class="fu">return</span> i
+
+parMapM f as <span class="fu">=</span> <span class="kw">do</span>
+    ibs <span class="ot">&lt;-</span> <span class="fu">mapM</span> (spawn <span class="fu">.</span> f) as
+    <span class="fu">mapM</span> get ibs
+
+<span class="co">-- Control.Monad.Par.parMap</span>
+main <span class="fu">=</span> <span class="kw">do</span>
+    [f] <span class="ot">&lt;-</span> getArgs
+    grids <span class="ot">&lt;-</span> <span class="fu">fmap</span> <span class="fu">lines</span> <span class="fu">$</span> <span class="fu">readFile</span> f
+    <span class="fu">print</span> (<span class="fu">length</span> (<span class="fu">filter</span> isJust (runPar <span class="fu">$</span> parMap solve grids)))
+
+<span class="co">-- Productivity  95.8% of total user, 173.1% of total elapsed</span></code></pre>
+</div>
+<div class="section slide level1" id="ćwiczenie-nqueens-w-róznych-wariantach">
+<h1>Ćwiczenie: nqueens w róznych wariantach</h1>
+<p>Przerób rozwiązanie nqueens z poprzednich zajęć (z <code>Eval</code>) na użycie <code>Par</code>.</p>
+<p>Toż z <code>forkIO+MVar</code></p>
+<p>Uwaga na granularność!</p>
+</div>
 <div class="section slide level1" id="koniec">
 <h1>Koniec</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
+</div>
+<div class="section slide level1" id="budowanie-abstrakcji-przy-użyciu-mvar----kanały">
+<h1>Budowanie abstrakcji przy użyciu MVar -- kanały</h1>
+<p><code>MVar</code>: jednoelementowy bufor/semafor:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">newMVar  ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">MVar</span> a)
+<span class="ot">takeMVar ::</span>  <span class="dt">MVar</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a 
+<span class="ot">putMVar  ::</span> <span class="dt">MVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
+<p><code>Chan</code>: nieograniczony bufor (kanał)</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Chan</span> a
+<span class="ot">newChan   ::</span> <span class="dt">IO</span> ( <span class="dt">Chan</span> a )
+<span class="ot">readChan  ::</span> <span class="dt">Chan</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
+<span class="ot">writeChan ::</span> <span class="dt">Chan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
 </div>
 <div class="section slide level1" id="asynchroniczne-wyjątki">
 <h1>Asynchroniczne wyjątki</h1>
