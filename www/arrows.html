@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+</head>
+<body>
+<h1 id="sygnały-i-programowanie-reaktywne">Sygnały i programowanie reaktywne</h1>
+<ul>
+<li><p>Systemy hybrydowe: elementy analogowe (ciągłe) i cyfrowe (dyskretne)</p></li>
+<li><p>Sygnały: wartości zmienne w czasie</p></li>
+<li><p>Przetworniki sygnałów (SF)</p></li>
+</ul>
+<pre><code>Signal a ~ Time -&gt; a
+SF a b   ~ Signal a -&gt; Signal b</code></pre>
+<p>(historycznie: Hallgren, Carlsson 1995: użycie procesorów strumieni do programowania GUI w Haskellu)</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">SP</span> a b <span class="fu">=</span> <span class="dt">Put</span> b (<span class="dt">SP</span> a b) <span class="fu">|</span> <span class="dt">Get</span> (a <span class="ot">-&gt;</span> <span class="dt">SP</span> a b)</code></pre>
+<h1 id="przetworniki">Przetworniki</h1>
+<div class="figure">
+<img src="YampaArrows.png" title="Przetworniki" />
+</div>
+<h1 id="strzałki">Strzałki</h1>
+<ul>
+<li><p><code>instance Monad m c</code>: obliczenie o wyniku typu <code>c</code></p></li>
+<li><p><code>instance Arrow a b c</code>: obliczenie przetwarzające <code>a</code> na <code>b</code></p></li>
+</ul>
+<p>Pierwsze przybliżenie (Hughes 2000 ``Generalising monads to arrows'')</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
+<span class="ot">    arr   ::</span> (b<span class="ot">-&gt;</span>c) <span class="ot">-&gt;</span>  a b c
+<span class="ot">    (&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d</code></pre>
+<p>Dla dowolnej monady <code>m</code>, funkcje <code>a -&gt; m b</code> są dobrymi kandydatami:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Kleisli</span> m a b <span class="fu">=</span> <span class="dt">K</span>(a <span class="ot">-&gt;</span> m b)
+
+<span class="kw">instance</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Arrow</span> (<span class="dt">Kleisli</span> m) <span class="kw">where</span>
+  arr f       <span class="fu">=</span> <span class="dt">K</span> <span class="fu">$</span> <span class="fu">return</span> <span class="fu">.</span> f
+  <span class="dt">K</span> f <span class="fu">&gt;&gt;&gt;</span> <span class="dt">K</span> g <span class="fu">=</span> <span class="dt">K</span> <span class="fu">$</span> f <span class="fu">&gt;=&gt;</span> g
+
+<span class="ot">(&gt;=&gt;)       ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> m c) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m c)
+f <span class="fu">&gt;=&gt;</span> g     <span class="fu">=</span> \x <span class="ot">-&gt;</span> (f x <span class="fu">&gt;&gt;=</span> g)</code></pre>
+<h1 id="problem">Problem</h1>
+<p>Obliczenie sumujące wyniki dwóch obliczeń</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add1 ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> m <span class="dt">Int</span> <span class="ot">-&gt;</span> m <span class="dt">Int</span> <span class="ot">-&gt;</span> m <span class="dt">Int</span> 
+add1 mx my <span class="fu">=</span> mx <span class="fu">&gt;&gt;=</span> \x<span class="ot">-&gt;</span> my <span class="fu">&gt;&gt;=</span> \y <span class="ot">-&gt;</span> <span class="fu">return</span> <span class="fu">$</span> x<span class="fu">+</span>y
+<span class="co">-- liftM2 (+)</span></code></pre>
+<p>Jak to wyrazić przy pomocy strzałek?</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add2 ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span></code></pre>
+<p><code>arr (+)</code> ?</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addInt ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
+addInt <span class="fu">=</span> (<span class="fu">+</span>)
+
+<span class="fu">&gt;</span> <span class="fu">:</span>t arr addInt
+arr<span class="ot"> addInt ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a <span class="dt">Int</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>)</code></pre>
+<p>Bramki z jednym wejściem są za słabe...</p>
+<h1 id="pomysł">Pomysł</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add2 ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span>
+add2 f g <span class="fu">=</span> (<span class="fu">?</span>)</code></pre>
+<div class="figure">
+<img src="arrAdd.png" title="arrow add" />
+</div>
+<p>Tak <code>f</code> jak i <code>g</code> potrzebują wejścia typu <code>b</code>.</p>
+<ul>
+<li><p>Rozdzielmy wejście na dwie kopie</p></li>
+<li><p>jedną podajmy do <code>f</code>, drugą zachowajmy</p></li>
+<li><p>zachowajmy wynik <code>f</code>, podając drugą kopię do <code>g</code></p></li>
+<li><p>zsumujmy wyniki</p></li>
+</ul>
+<h1 id="demultiplekser">Demultiplekser</h1>
+<p>Zamiast dwóch wejść, możemy uzyc jednego, które jest parą...</p>
+<p>...pod warunkiem, że potrafimy operować na składnikach niezależnie</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
+<span class="ot">    first ::</span> a b c <span class="ot">-&gt;</span> a (b,d) (c,d)</code></pre>
+<div class="figure">
+<img src="first.png" title="first" />
+</div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">    arr ::</span> (b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> a b c</code></pre>
+<div class="figure">
+<img src="arr.png" title="arr" />
+</div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d</code></pre>
+<div class="figure">
+<img src="compose.png" title="compose" />
+</div>
+<h1 id="second">second?</h1>
+<p>Mamy <code>first</code> a gdzie jest second?</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">second ::</span> a b c <span class="ot">-&gt;</span> a (d, b) (d, c)
+second f <span class="fu">=</span> arr swap <span class="fu">&gt;&gt;&gt;</span> first f <span class="fu">&gt;&gt;&gt;</span> arr swap 
+  <span class="kw">where</span> swap (x,y) <span class="fu">=</span> (y,x)</code></pre>
+<div class="figure">
+<img src="secondImp.png" title="second" />
+</div>
+<h1 id="first-f-second-g"><code>first f &gt;&gt;&gt; second g</code></h1>
+<p>Teraz możemy przetwarzać obie składowe:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(***)   ::</span> a b c <span class="ot">-&gt;</span> a b&#39; c&#39; <span class="ot">-&gt;</span> a (b, b&#39;) (c, c&#39;)
+f <span class="fu">***</span> g <span class="fu">=</span> first f <span class="fu">&gt;&gt;&gt;</span> second g
+
+<span class="ot">(&amp;&amp;&amp;) ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b c <span class="ot">-&gt;</span> a b c&#39; <span class="ot">-&gt;</span> a b (c, c&#39;)
+f <span class="fu">&amp;&amp;&amp;</span> g <span class="fu">=</span> arr dup <span class="fu">&gt;&gt;&gt;</span> (f <span class="fu">***</span> g)
+  <span class="kw">where</span> dup x <span class="fu">=</span> (x,x)
+                
+<span class="ot">add2 ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span>
+add2 f g <span class="fu">=</span> (f <span class="fu">&amp;&amp;&amp;</span> g) <span class="fu">&gt;&gt;&gt;</span> arr (\(u,v) <span class="ot">-&gt;</span> u <span class="fu">+</span> v)
+                           <span class="co">-- uncurry (+)</span></code></pre>
+<div class="figure">
+<img src="arrAdd.png" title="arrow add" />
+</div>
+<h1 id="koniec">Koniec</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
+</body>
+</html>
