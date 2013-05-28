@@ -89,7 +89,7 @@ add2 f g <span class="fu">=</span> (<span class="fu">?</span>)</code></pre>
 <h1 id="demultiplekser">Demultiplekser</h1>
 <p>Zamiast dwóch wejść, możemy uzyc jednego, które jest parą...</p>
 <p>...pod warunkiem, że potrafimy operować na składnikach niezależnie</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span> <span class="co">{- ... -}</span>
 <span class="ot">    first ::</span> a b c <span class="ot">-&gt;</span> a (b,d) (c,d)</code></pre>
 <div class="figure">
 <img src="first.png" title="first" />
@@ -125,6 +125,75 @@ add2 f g <span class="fu">=</span> (f <span class="fu">&amp;&amp;&amp;</span> g)
 <div class="figure">
 <img src="arrAdd.png" title="arrow add" />
 </div>
+<h1 id="kombinatory-parsujące">Kombinatory parsujące</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Swierstra &amp; Duponcheel LL(1) parsers</span>
+
+<span class="co">-- static info: nullable, First</span>
+<span class="kw">data</span> <span class="dt">StaticParser</span> s <span class="fu">=</span> <span class="dt">SP</span> {<span class="ot"> spNullable ::</span> <span class="dt">Bool</span>,<span class="ot"> spFirst ::</span> [s] } 
+
+<span class="kw">newtype</span> <span class="dt">DynamicParser</span> s a <span class="fu">=</span> <span class="dt">DP</span>([s] <span class="ot">-&gt;</span> (a,[s]))
+<span class="kw">data</span> <span class="dt">Parser</span> s a <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">StaticParser</span> s)(<span class="dt">DynamicParser</span> s a)
+
+<span class="ot">symbol ::</span> s <span class="ot">-&gt;</span> <span class="dt">Parser</span> s s
+symbol s <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="kw">False</span> [s]) (<span class="dt">DP</span> (\(x<span class="fu">:</span>xs) <span class="ot">-&gt;</span> (s,xs)))
+<span class="co">-- Wywołane tylko gdy pierwszym symbolem jest s</span>
+
+<span class="ot">(&lt;|&gt;) ::</span> <span class="kw">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a
+(<span class="dt">P</span> (<span class="dt">SP</span> nul1 first1) (<span class="dt">DP</span> p1)) <span class="fu">&lt;|&gt;</span> (<span class="dt">P</span> (<span class="dt">SP</span> nul2 first2) (<span class="dt">DP</span> p2)) <span class="fu">=</span>
+  <span class="dt">P</span> (<span class="dt">SP</span> (nul1 <span class="fu">||</span> nul2) (first1<span class="fu">++</span>first2)) (<span class="dt">DP</span> p) <span class="kw">where</span>
+    p xs <span class="fu">=</span> <span class="kw">case</span> xs <span class="kw">of</span>
+      []     <span class="ot">-&gt;</span> <span class="kw">if</span> nul1 <span class="kw">then</span> p1 [] <span class="kw">else</span> p2 []
+      (y<span class="fu">:</span>ys) <span class="ot">-&gt;</span> <span class="kw">if</span> y <span class="ot">`elem`</span> first1 <span class="kw">then</span> p1 xs <span class="kw">else</span>   
+                <span class="kw">if</span> y <span class="ot">`elem`</span> first2 <span class="kw">then</span> p2 xs <span class="kw">else</span>
+                <span class="kw">if</span> nul1 <span class="kw">then</span> p1 xs <span class="kw">else</span> p2 xs</code></pre>
+<h1 id="problem-1">Problem: &gt;&gt;= ?</h1>
+<p>Jak zdefiniować</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(&gt;&gt;=) ::</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s b) <span class="ot">-&gt;</span> <span class="dt">Parser</span> s b </code></pre>
+<p>Problem: ''statyczna'' informacja o parserze wynikowym nie jest statyczna, gdyż zalezy od pierwszego parsera.</p>
+<p>Przypomnijmy, podobny problem był z</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Accy</span> o a <span class="fu">=</span> <span class="dt">Acc</span>{<span class="ot">acc::</span>o}
+<span class="ot">(&gt;&gt;=) ::</span> <span class="dt">Accy</span> o a <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span><span class="dt">Accy</span> o b) <span class="ot">-&gt;</span> <span class="dt">Accy</span> o b</code></pre>
+<h1 id="rozwiązanie-1-applicative">Rozwiązanie 1: Applicative</h1>
+<p>Zamiast <code>Monad</code> można uzyć <code>Applicative</code>:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&lt;*&gt;</span><span class="ot"> ::</span> (<span class="dt">Parser</span> s (a<span class="ot">-&gt;</span>b)) <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s b
+(<span class="dt">P</span> (<span class="dt">SP</span> nul1 first1) (<span class="dt">DP</span> pf)) <span class="fu">&lt;|&gt;</span> (<span class="dt">P</span> (<span class="dt">SP</span> nul2 first2) (<span class="dt">DP</span> pa)) <span class="fu">=</span> 
+  <span class="dt">P</span> (<span class="dt">SP</span> (nul1<span class="fu">&amp;&amp;</span>nul2) first) (<span class="dt">DP</span> p) <span class="kw">where</span> 
+    first <span class="fu">=</span> <span class="kw">if</span> nul1 <span class="kw">then</span> first1 <span class="fu">++</span> first2 <span class="kw">else</span> first1
+    p <span class="fu">=</span> <span class="fu">...</span>
+
+<span class="ot">pure ::</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a
+pure <span class="fu">=</span> <span class="fu">...</span></code></pre>
+<p><strong>Ćwiczenie:</strong> uzupełnij powyższą definicję</p>
+<p><strong>Bonus:</strong> wykorzystaj <code>first</code> oraz <code>(&amp;&amp;&amp;)</code></p>
+<h1 id="rozwiązanie-2-arrow">Rozwiązanie 2: Arrow</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
+<span class="ot">    arr   ::</span> (b<span class="ot">-&gt;</span>c) <span class="ot">-&gt;</span>  a b c
+<span class="ot">    (&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d
+<span class="ot">    first ::</span> a b c <span class="ot">-&gt;</span> a (b,d) (c,d)
+
+<span class="kw">instance</span> <span class="kw">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">Arrow</span> (<span class="dt">Parser</span> s) <span class="kw">where</span>
+   arr f <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="kw">True</span> []) (arr f)
+   
+   (<span class="dt">P</span> (<span class="dt">SP</span> nul1 first1) dp1) <span class="fu">&gt;&gt;&gt;</span> (<span class="dt">P</span> (<span class="dt">SP</span> nul2 first2) dp2) <span class="fu">=</span>
+     <span class="dt">P</span> (<span class="dt">SP</span> (nul1 <span class="fu">&amp;&amp;</span> nul2) (union first1 first2)) (dp1 <span class="fu">&gt;&gt;&gt;</span> dp2) 
+     
+   first (<span class="dt">P</span> sp dp) <span class="fu">=</span> <span class="dt">P</span> sp (first dp)
+
+<span class="kw">instance</span> <span class="dt">Arrow</span> (<span class="dt">DynamicParser</span> s) <span class="kw">where</span> <span class="fu">...</span></code></pre>
+<p><strong>Ćwiczenie:</strong> uzupełnij instancję dla <code>DynamicParser</code></p>
+<h1 id="arrowzero-arrowplus">ArrowZero, ArrowPlus</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> <span class="dt">ArrowZero</span> a <span class="kw">where</span>
+<span class="ot">    zeroArrow ::</span> a b c
+   
+<span class="kw">instance</span> <span class="kw">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">ArrowZero</span> (<span class="dt">Parser</span> s) <span class="kw">where</span>
+  zeroArrow <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="kw">False</span> []) zeroArrow
+  
+<span class="kw">instance</span> <span class="dt">ArrowZero</span> (<span class="dt">DynamicParser</span> s) <span class="kw">where</span> <span class="fu">...</span>
+
+<span class="kw">class</span> <span class="dt">ArrowZero</span> a <span class="ot">=&gt;</span> <span class="dt">ArrowPlus</span> a <span class="kw">where</span>
+    <span class="co">-- | An associative operation with identity &#39;zeroArrow&#39;.</span>
+<span class="ot">    (&lt;+&gt;) ::</span> a b c <span class="ot">-&gt;</span> a b c <span class="ot">-&gt;</span> a b c  </code></pre>
+<p><strong>Ćwiczenie:</strong> uzupełnij brakujące instancje</p>
 <h1 id="koniec">Koniec</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
 </body>
