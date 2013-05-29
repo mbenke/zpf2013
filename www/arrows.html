@@ -194,6 +194,23 @@ pure <span class="fu">=</span> <span class="fu">...</span></code></pre>
     <span class="co">-- | An associative operation with identity &#39;zeroArrow&#39;.</span>
 <span class="ot">    (&lt;+&gt;) ::</span> a b c <span class="ot">-&gt;</span> a b c <span class="ot">-&gt;</span> a b c  </code></pre>
 <p><strong>Ćwiczenie:</strong> uzupełnij brakujące instancje</p>
+<h1 id="składnia-dla-strzałek">Składnia dla strzałek</h1>
+<div class="figure">
+<img src="arrAdd.png" title="arrow add" />
+</div>
+<p>Podobnie jak monady, tak i strzałki mają swoja składnię</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE Arrows #-}</span>
+<span class="kw">import</span> Control.Arrow
+<span class="ot">addA ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span>
+addA f g <span class="fu">=</span> proc x <span class="ot">-&gt;</span> <span class="kw">do</span>
+    y <span class="ot">&lt;-</span> f <span class="fu">-&lt;</span> x
+    z <span class="ot">&lt;-</span> g <span class="fu">-&lt;</span> x
+    returnA <span class="fu">-&lt;</span> y <span class="fu">+</span> z</code></pre>
+<p>co się tłumaczy do</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">addA f g <span class="fu">=</span> arr (\ x <span class="ot">-&gt;</span> (x, x)) <span class="fu">&gt;&gt;&gt;</span>
+           first f <span class="fu">&gt;&gt;&gt;</span> arr (\ (y, x) <span class="ot">-&gt;</span> (x, y)) <span class="fu">&gt;&gt;&gt;</span>
+           first g <span class="fu">&gt;&gt;&gt;</span> arr (\ (z, y) <span class="ot">-&gt;</span> y <span class="fu">+</span> z)</code></pre>
+<p>wcześniej pisalismy <code>add</code> uzywając <code>(&amp;&amp;&amp;)</code> ale preprocesor nie jest na tyle sprytny (podobnie jak preprocesor dla monad nie uzywa <code>liftM2</code> etc.)</p>
 <h1 id="koniec">Koniec</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
 </body>

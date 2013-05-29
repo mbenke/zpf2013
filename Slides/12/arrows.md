@@ -255,6 +255,34 @@ class ArrowZero a => ArrowPlus a where
 
 **Ćwiczenie:** uzupełnij brakujące instancje
 
+# Składnia dla strzałek
+
+![](arrAdd.png "arrow add")
+
+Podobnie jak monady, tak i strzałki mają swoja składnię
+
+~~~~ {.haskell}
+{-# LANGUAGE Arrows #-}
+import Control.Arrow
+addA :: Arrow a => a b Int -> a b Int -> a b Int
+addA f g = proc x -> do
+    y <- f -< x
+    z <- g -< x
+    returnA -< y + z
+~~~~
+
+co się tłumaczy do
+
+~~~~ {.haskell}
+addA f g = arr (\ x -> (x, x)) >>>
+           first f >>> arr (\ (y, x) -> (x, y)) >>>
+           first g >>> arr (\ (z, y) -> y + z)
+~~~~
+
+wcześniej pisalismy `add` uzywając `(&&&)` ale preprocesor nie jest na
+tyle sprytny (podobnie jak preprocesor dla monad nie uzywa `liftM2`
+etc.)
+
 # Koniec
 
 ~~~~ {.haskell}
