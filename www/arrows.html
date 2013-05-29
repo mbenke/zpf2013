@@ -166,7 +166,11 @@ pure <span class="fu">=</span> <span class="fu">...</span></code></pre>
 <p><strong>Ćwiczenie:</strong> uzupełnij powyższą definicję</p>
 <p><strong>Bonus:</strong> wykorzystaj <code>first</code> oraz <code>(&amp;&amp;&amp;)</code></p>
 <h1 id="rozwiązanie-2-arrow">Rozwiązanie 2: Arrow</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">StaticParser</span> s <span class="fu">=</span> <span class="dt">SP</span> {<span class="ot"> spNullable ::</span> <span class="dt">Bool</span>,<span class="ot"> spFirst ::</span> [s] } 
+<span class="kw">newtype</span> <span class="dt">DynamicParser</span> s a b <span class="fu">=</span> <span class="dt">DP</span>( (a,[s]) <span class="ot">-&gt;</span> (b,[s]) )
+<span class="kw">data</span> <span class="dt">Parser</span> s a b <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">StaticParser</span> s)(<span class="dt">DynamicParser</span> s a b)
+
+<span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
 <span class="ot">    arr   ::</span> (b<span class="ot">-&gt;</span>c) <span class="ot">-&gt;</span>  a b c
 <span class="ot">    (&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d
 <span class="ot">    first ::</span> a b c <span class="ot">-&gt;</span> a (b,d) (c,d)
@@ -194,6 +198,12 @@ pure <span class="fu">=</span> <span class="fu">...</span></code></pre>
     <span class="co">-- | An associative operation with identity &#39;zeroArrow&#39;.</span>
 <span class="ot">    (&lt;+&gt;) ::</span> a b c <span class="ot">-&gt;</span> a b c <span class="ot">-&gt;</span> a b c  </code></pre>
 <p><strong>Ćwiczenie:</strong> uzupełnij brakujące instancje</p>
+<p><strong>Ćwiczenie:</strong> napisz parser dla ciągów cyfr:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parseInt ::</span> <span class="dt">Parser</span> <span class="dt">Char</span> a <span class="dt">Int</span>
+parseInt <span class="fu">=</span> arr (<span class="fu">const</span> <span class="dv">0</span>) <span class="fu">&gt;&gt;&gt;</span> parseInt1
+
+<span class="ot">parseInt1 ::</span> <span class="dt">Parser</span> <span class="dt">Char</span> <span class="dt">Int</span> <span class="dt">Int</span>
+parseInt1 <span class="fu">=</span> <span class="fu">undefined</span></code></pre>
 <h1 id="składnia-dla-strzałek">Składnia dla strzałek</h1>
 <div class="figure">
 <img src="arrAdd.png" title="arrow add" />

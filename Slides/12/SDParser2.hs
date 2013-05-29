@@ -43,3 +43,9 @@ class ArrowZero a => ArrowPlus a where
     
 instance Eq s => ArrowPlus (Parser s) where
   (<+>) = undefined
+  
+parseInt :: Parser Char a Int
+parseInt = arr (const 0) >>> parseInt'
+
+parseInt' :: Parser Char Int Int
+parseInt' = undefined

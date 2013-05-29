@@ -219,6 +219,10 @@ pure = ...
 # Rozwiązanie 2: Arrow
 
 ~~~~ {.haskell}
+data StaticParser s = SP { spNullable :: Bool, spFirst :: [s] } 
+newtype DynamicParser s a b = DP( (a,[s]) -> (b,[s]) )
+data Parser s a b = P (StaticParser s)(DynamicParser s a b)
+
 class Arrow a where
     arr   :: (b->c) ->  a b c
     (>>>) :: a b c -> a c d -> a b d
@@ -254,6 +258,16 @@ class ArrowZero a => ArrowPlus a where
 ~~~~
 
 **Ćwiczenie:** uzupełnij brakujące instancje
+
+**Ćwiczenie:** napisz parser dla ciągów cyfr:
+
+~~~~ {.haskell}
+parseInt :: Parser Char a Int
+parseInt = arr (const 0) >>> parseInt'
+
+parseInt' :: Parser Char Int Int
+parseInt' = undefined
+~~~~
 
 # Składnia dla strzałek
 
