@@ -127,9 +127,15 @@ True
 *Main Test.QuickCheck&gt; quickCheck prop_idempotent
 +++ OK, passed 100 tests.</code></pre>
 <p>QuickCheck wylosował 100 list i sprawdził własność,</p>
-<p>Możemy zażyczyć sobie np. 1000:</p>
-<pre><code>*Main Test.QuickCheck&gt; quickCheckWith stdArgs {maxSuccess = 1000}  prop
-+++ OK, passed 1000 tests.</code></pre>
+<!--
+Możemy zażyczyć sobie np. 1000:
+
+~~~~
+*Main Test.QuickCheck> quickCheckWith stdArgs {maxSuccess = 1000}  prop
++++ OK, passed 1000 tests.
+~~~~
+-->
+
 <p><strong>Uwaga:</strong> nie możemy losować wartości polimorficznych, dlatego prop_idempotent monomorficzne.</p>
 <p><strong>Ćwiczenie:</strong> napisz i uruchom kilka testów dla sortowania i kilka testów dla własnych funkcji.</p>
 <h1 id="przykłady-wyrażenia-regularne-i-własnosci">Przykłady: wyrażenia regularne i własnosci</h1>

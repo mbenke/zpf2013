@@ -154,12 +154,14 @@ True
 
 QuickCheck wylosował 100 list i sprawdził własność,
 
+<!--
 Możemy zażyczyć sobie np. 1000:
 
 ~~~~
 *Main Test.QuickCheck> quickCheckWith stdArgs {maxSuccess = 1000}  prop
 +++ OK, passed 1000 tests.
 ~~~~
+-->
 
 **Uwaga:** nie możemy losować  wartości polimorficznych, dlatego prop_idempotent monomorficzne.
 
