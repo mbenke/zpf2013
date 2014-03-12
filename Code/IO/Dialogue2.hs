@@ -1,7 +1,7 @@
 module Dialogue2 where
 import qualified System.IO as Sys       
 import qualified System.Environment as Environment
-import System.IO.Error(catch)
+import System.IO.Error(catchIOError)
 import Debug.Trace
 
 type Dialogue = [Response] -> [Request]
@@ -40,7 +40,7 @@ runDialogue d = case (d undefined) of
        r <- (runRequest q )
        runDialogue $ \rs -> tail (d (r:rs))
 runRequest :: Request -> IO Response
-runRequest r = runR r `catch` \e -> return (Failure e)
+runRequest r = runR r `catchIOError` \e -> return (Failure e)
 
 runR (PutChar h c) = Sys.hPutChar h c >> return Success
 runR (GetChar h ) = do
