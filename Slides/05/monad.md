@@ -684,7 +684,7 @@ instance MonadState s X where
 ...
 -- Wskazówka: cont :: ((a->s->r)->s -> r) -> Cont (s->r) a
   
-tick :: CSM Int r Int
+tick :: CSM Int r ()
 tick = modify (+1)
 
 baz :: CSM Int r Int
