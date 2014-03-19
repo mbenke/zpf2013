@@ -9,7 +9,9 @@ instance Functor W where
 
 class Pointed f where
   pure :: a -> f a
-  
+  -- Free theorem:
+  -- fmap g . pure === pure . g  
+
 instance Pointed W where
   pure = W
   
@@ -56,10 +58,7 @@ join wwa = undefined
 # Join
 
 ~~~~ {.haskell}
-class Functor m => Monad' m where
-   pure  ::  a -> m a
--- fmap  :: (a -> b) -> m a -> m b
--- fmap g . pure === pure . g
+class (Functor m, Pointed m) => Monad' m where
 
   join :: m (m a) -> m a
 -- join . fmap pure === id === join . pure
