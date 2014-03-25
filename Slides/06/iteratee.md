@@ -115,7 +115,7 @@ type Iteratee el m a
 
 instance Monad m => Monad (Iteratee el m)
 
-instance MonadTrans => (Iteratee el)
+instance MonadTrans (Iteratee el)
 
 getchar :: Monad m => Iteratee el m (Maybe el)  -- IO.getChar, List.head
 
