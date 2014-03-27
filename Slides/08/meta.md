@@ -1,6 +1,6 @@
 # Eksperyment dydaktyczny
 
-[School of Haskell](http://www.fpcomplete.com)
+[School of Haskell](http://www.fpcomplete.com/school)
 
 # Metaprogramowanie
 
