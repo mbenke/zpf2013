@@ -8,7 +8,7 @@ Chcielibyśmy, by komunikat o błędzie podawał:
 Dla zrealizowania pierwszego postulatu, stan musi przechowywać bieżącą pozycję, np.
 
 ~~~~ {.haskell}
-newtype State = State {stPos :: Pos, stInput :: String}
+data State = State {stPos :: Pos, stInput :: String}
 ~~~~
 
 * Ćwiczenie: zmodyfikuj MyParsec2a tak, aby przechowywał i raportował
