@@ -29,39 +29,39 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <body>
 <h1 id="przypomnienie---funktory">Przypomnienie - Funktory</h1>
 <p>Funktor to operacja <code>T :: * -&gt; *</code> na typach<br />wraz z operacją <code>fmap</code> na funkcjach</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">fmap</span><span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> (<span class="dt">T</span> a <span class="ot">-&gt;</span> <span class="dt">T</span> b) </code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fmap<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> (<span class="dt">T</span> a <span class="ot">-&gt;</span> <span class="dt">T</span> b) </code></pre>
 <p>zachowującą strukturę składania funkcji, czyli</p>
 <pre><code>fmap id = id
 fmap (f . g) = fmap f . fmap g</code></pre>
 <h1 id="motywacja---sekwencje">Motywacja - sekwencje</h1>
 <p>Przypomnijmy sobie parser dla cyfr:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">pNum ::</span> <span class="dt">Parser</span> <span class="dt">Int</span>
-pNum <span class="fu">=</span> <span class="fu">fmap</span> <span class="fu">digitToInt</span> digit</code></pre>
+pNum <span class="fu">=</span> fmap digitToInt digit</code></pre>
 <p>co jest krótszym zapisem</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">pNum <span class="fu">=</span> <span class="kw">do</span>
      d <span class="ot">&lt;-</span> digit
-     <span class="fu">return</span> <span class="fu">$</span> <span class="fu">digitToInt</span> d</code></pre>
+     return <span class="fu">$</span> digitToInt d</code></pre>
 <p>Chcielibyśmy móc podobnie uprościć schemat</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">do</span> x1 <span class="ot">&lt;-</span> m1
    x2 <span class="ot">&lt;-</span> m2
-   <span class="fu">return</span> <span class="fu">$</span> f x1 x2</code></pre>
+   return <span class="fu">$</span> f x1 x2</code></pre>
 <h1 id="motywacja---sekwencje-1">Motywacja - sekwencje</h1>
 <p>Przypomnijmy sobie funkcję <code>sequence</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">sequence1 ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> [m a] <span class="ot">-&gt;</span> m [a]
-sequence1 [] <span class="fu">=</span> <span class="fu">return</span> []
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">sequence1 ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> [m a] <span class="ot">-&gt;</span> m [a]
+sequence1 [] <span class="fu">=</span> return []
 sequence1 (c <span class="fu">:</span> cs) <span class="fu">=</span> <span class="kw">do</span>
   x <span class="ot">&lt;-</span> c
   xs <span class="ot">&lt;-</span> sequence1 cs
-  <span class="fu">return</span> (x <span class="fu">:</span> xs)</code></pre>
+  return (x <span class="fu">:</span> xs)</code></pre>
 <p>która łączy listę akcji zbierając ich wyniki w liste.</p>
 <p>Możemy ją zapisac prościej uzywając &quot;monadycznej&quot; aplikacji, <code>ap</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">sequence2 (c<span class="fu">:</span>cs) <span class="fu">=</span> <span class="fu">return</span> (<span class="fu">:</span>) <span class="ot">`ap`</span> c <span class="ot">`ap`</span> <span class="fu">sequence</span> cs
+<pre class="sourceCode haskell"><code class="sourceCode haskell">sequence2 (c<span class="fu">:</span>cs) <span class="fu">=</span> return (<span class="fu">:</span>) <span class="ot">`ap`</span> c <span class="ot">`ap`</span> sequence cs
 
-<span class="ot">ap ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> m (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m b
+<span class="ot">ap ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> m (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m b
 ap mf mx <span class="fu">=</span> <span class="kw">do</span>
   f <span class="ot">&lt;-</span> mf
   x <span class="ot">&lt;-</span> mx
-  <span class="fu">return</span> <span class="fu">$</span> f x</code></pre>
+  return <span class="fu">$</span> f x</code></pre>
 <h1 id="motywacja---transponowanie-macierzy">Motywacja - transponowanie macierzy</h1>
 <p>Macierz jako lista wierszy (równej długości)</p>
 <pre><code>&gt; transpose [[1,2],[3,4],[5,6]]
@@ -86,40 +86,40 @@ consAll _      _        <span class="fu">=</span> []</code></pre>
 consAll (y<span class="fu">:</span>ys) (zs<span class="fu">:</span>zss) <span class="fu">=</span> (y<span class="fu">:</span>zs)<span class="fu">:</span>consAll ys zss
 consAll _      _        <span class="fu">=</span> []
 
-<span class="fu">zip</span><span class="ot"> ::</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [(a, b)]
-<span class="fu">zip</span>  (y<span class="fu">:</span>ys) (z<span class="fu">:</span>zs) <span class="fu">=</span> (a,b)<span class="fu">:zip</span> ys zs
-<span class="fu">zip</span>  _      _      <span class="fu">=</span> []
+zip<span class="ot"> ::</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [(a, b)]
+zip  (y<span class="fu">:</span>ys) (z<span class="fu">:</span>zs) <span class="fu">=</span> (y,z)<span class="fu">:</span>zip ys zs
+zip  _      _      <span class="fu">=</span> []
 
 <span class="co">-- Uogólnienie zip</span>
-<span class="fu">zipWith</span><span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [c]
-<span class="fu">zipWith</span> f (y<span class="fu">:</span>ys) (z<span class="fu">:</span>zs) <span class="fu">=</span> f y z<span class="fu">:zipWith</span> f ys zs
-<span class="fu">zipWith</span> _  _      _      <span class="fu">=</span> []
+zipWith<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [c]
+zipWith f (y<span class="fu">:</span>ys) (z<span class="fu">:</span>zs) <span class="fu">=</span> f y z<span class="fu">:</span>zipWith f ys zs
+zipWith _  _      _      <span class="fu">=</span> []
 
-<span class="fu">zip</span> <span class="fu">=</span> <span class="fu">zipWith</span> (,)
-consAll <span class="fu">=</span> <span class="fu">zipWith</span> (<span class="fu">:</span>)</code></pre>
+zip <span class="fu">=</span> zipWith (,)
+consAll <span class="fu">=</span> zipWith (<span class="fu">:</span>)</code></pre>
 <h1 id="jeszcze-raz-transpose">Jeszcze raz transpose</h1>
 <p>Obserwacja:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&gt;</span> <span class="fu">zipWith</span> (<span class="fu">:</span>) [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>] (<span class="fu">repeat</span> [])
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&gt;</span> zipWith (<span class="fu">:</span>) [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>] (repeat [])
 [[<span class="dv">1</span>],[<span class="dv">2</span>],[<span class="dv">3</span>]]</code></pre>
 <p>Czyli można</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">transpose2 ::</span> [[a]] <span class="ot">-&gt;</span> [[a]]
-transpose2 (xs<span class="fu">:</span>xss) <span class="fu">=</span> <span class="fu">zipWith</span> (<span class="fu">:</span>) xs (transpose2 xss)
-transpose2 [] <span class="fu">=</span> []</code></pre>
+transpose2 (xs<span class="fu">:</span>xss) <span class="fu">=</span> zipWith (<span class="fu">:</span>) xs (transpose2 xss)
+transpose2 [] <span class="fu">=</span> repeat []</code></pre>
 <p>kłopoty z transpozycja pustej macierzy, ale:</p>
 <pre><code>&gt; transpose $ transpose []
 []
 &gt; transpose [[]]
 []</code></pre>
 <h1 id="motywacja---zipwith">Motywacja - <code>zipWith</code></h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">
-<span class="fu">zipWith</span><span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [c]
-<span class="fu">zipWith3</span><span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> d) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [c] <span class="ot">-&gt;</span> [d]
+<pre class="sourceCode haskell"><code class="sourceCode haskell">zipWith<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [c]
+zipWith3<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> d) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [c] <span class="ot">-&gt;</span> [d]
 <span class="co">-- zipWith_n :: (a1 -&gt; ... -&gt; an -&gt; b) -&gt; [a1] -&gt; ... -&gt; [an] -&gt; [b]</span>
 <span class="co">-- zipWith_n f as1 ... asn = repeat f `zap` as1 `zap` ... `zap` asn</span>
+<span class="co">-- zap  ~ &#39;zippy ap&#39;</span>
 
 <span class="ot">transpose ::</span> [[a]] <span class="ot">-&gt;</span> [[a]]
-transpose [] <span class="fu">=</span> <span class="fu">repeat</span> []
-transpose (xs<span class="fu">:</span>xss) <span class="fu">=</span> <span class="fu">repeat</span> (<span class="fu">:</span>) <span class="ot">`zap`</span> xs <span class="ot">`zap`</span> transpose xss
+transpose [] <span class="fu">=</span> repeat []
+transpose (xs<span class="fu">:</span>xss) <span class="fu">=</span> repeat (<span class="fu">:</span>) <span class="ot">`zap`</span> xs <span class="ot">`zap`</span> transpose xss
 <span class="co">-- zipWith (:) xs (transpose xss) == </span>
 
 <span class="ot">zap ::</span> [a<span class="ot">-&gt;</span>b] <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [b]
@@ -141,24 +141,24 @@ eval1 (<span class="dt">Val</span> i) env <span class="fu">=</span> i
 eval1 (<span class="dt">Add</span> p q) env <span class="fu">=</span> eval1 p env <span class="fu">+</span> eval1 q env
 
 eval2 (<span class="dt">Var</span> x) <span class="fu">=</span> fetch x
-eval2 (<span class="dt">Val</span> i) <span class="fu">=</span> k i
-eval2 (<span class="dt">Add</span> p q) <span class="fu">=</span> k (<span class="fu">+</span>) <span class="ot">`s`</span> eval2 p <span class="ot">`s`</span> eval2 q
+eval2 (<span class="dt">Val</span> i) <span class="fu">=</span> const i
+eval2 (<span class="dt">Add</span> p q) <span class="fu">=</span> const (<span class="fu">+</span>) <span class="ot">`apply`</span> eval2 p 
+                            <span class="ot">`apply`</span> eval2 q
 
-k x y <span class="fu">=</span> x
-<span class="ot">s ::</span> (env <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> (env <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> (env <span class="ot">-&gt;</span> b)
-s ef es env <span class="fu">=</span> (ef env) (es env)</code></pre>
+<span class="ot">apply ::</span> (env <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> (env <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> (env <span class="ot">-&gt;</span> b)
+apply ef es env <span class="fu">=</span> (ef env) (es env)</code></pre>
 <h1 id="klasa-applicative">Klasa Applicative</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Control.Applicative</span>
-<span class="kw">class</span> (<span class="kw">Functor</span> f) <span class="ot">=&gt;</span> <span class="kw">Applicative</span> f <span class="kw">where</span>  
+<span class="kw">class</span> (<span class="dt">Functor</span> f) <span class="ot">=&gt;</span> <span class="dt">Applicative</span> f <span class="kw">where</span>  
 <span class="ot">    pure ::</span> a <span class="ot">-&gt;</span> f a  
 <span class="ot">    (&lt;*&gt;) ::</span> f (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b  </code></pre>
 <p>Analogia z monadycznym <code>ap</code>:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ap ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> m (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m b</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">ap ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> m (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m b</code></pre>
 <p>Przykład:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Applicative</span> <span class="dt">Maybe</span> <span class="kw">where</span>
-  pure <span class="fu">=</span> <span class="kw">Just</span>
-  (<span class="kw">Just</span> f) <span class="fu">&lt;*&gt;</span> (<span class="kw">Just</span> x) <span class="fu">=</span> <span class="kw">Just</span> (f x)
-  _        <span class="fu">&lt;*&gt;</span> _ <span class="fu">=</span> <span class="kw">Nothing</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">Maybe</span> <span class="kw">where</span>
+  pure <span class="fu">=</span> <span class="dt">Just</span>
+  (<span class="dt">Just</span> f) <span class="fu">&lt;*&gt;</span> (<span class="dt">Just</span> x) <span class="fu">=</span> <span class="dt">Just</span> (f x)
+  _        <span class="fu">&lt;*&gt;</span> _ <span class="fu">=</span> <span class="dt">Nothing</span>
   
 <span class="co">-- &gt;&gt;&gt; fmap (+1) (Just 5)</span>
 <span class="co">-- Just 6</span>
@@ -180,8 +180,8 @@ u &lt;*&gt; pure x = pure (\f -&gt; f x) &lt;*&gt; u</code></pre>
 <span class="co">-- sequence3 (c:cs) = pure   (:)  &lt;*&gt; c  &lt;*&gt; sequence3 cs</span>
 sequence3 (c<span class="fu">:</span>cs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> c <span class="fu">&lt;*&gt;</span> sequence3 cs
 
-<span class="kw">instance</span> <span class="kw">Applicative</span> [] <span class="kw">where</span>
-  pure <span class="fu">=</span> <span class="fu">repeat</span>
+<span class="kw">instance</span> <span class="dt">Applicative</span> [] <span class="kw">where</span>
+  pure <span class="fu">=</span> repeat
   (f <span class="fu">:</span> fs) <span class="fu">&lt;*&gt;</span> (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class="fu">:</span> (fs <span class="fu">&lt;*&gt;</span> xs)
   _        <span class="fu">&lt;*&gt;</span> _        <span class="fu">=</span> []
   
@@ -190,8 +190,8 @@ transpose3 [] <span class="fu">=</span> pure []
 transpose3 (xs <span class="fu">:</span>xss) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> xs <span class="fu">&lt;*&gt;</span> transpose3 xss
 <span class="co">-- return (:) `ap` xs `ap` transpose4 xss ??</span>
 
-<span class="kw">instance</span> <span class="kw">Applicative</span> ((<span class="ot">-&gt;</span>) env) <span class="kw">where</span>
-  pure <span class="fu">=</span> <span class="fu">const</span>
+<span class="kw">instance</span> <span class="dt">Applicative</span> ((<span class="ot">-&gt;</span>) env) <span class="kw">where</span>
+  pure <span class="fu">=</span> const
   ef <span class="fu">&lt;*&gt;</span> es <span class="fu">=</span> \env <span class="ot">-&gt;</span> (ef env) (es env)
 
 eval3 (<span class="dt">Var</span> x) <span class="fu">=</span> fetch x
@@ -204,36 +204,36 @@ sequence3 (c<span class="fu">:</span>cs) <span class="fu">=</span> (<span class=
 transpose3 [] <span class="fu">=</span> pure []
 transpose3 (xs <span class="fu">:</span>xss) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> xs <span class="fu">&lt;*&gt;</span> transpose3 xss</code></pre>
 <p>To jest ta sama funkcja:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dist ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> [f a] <span class="ot">=&gt;</span> f [a]
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dist ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> [f a] <span class="ot">=&gt;</span> f [a]
 dist []     <span class="fu">=</span> pure []
 dist (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> x <span class="fu">&lt;*&gt;</span> dist xs</code></pre>
 <h1 id="funkcyjny-iterator">Funkcyjny iterator</h1>
 <p><code>dist</code> może być uzyte w połączeniu z <code>map</code> np</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">flakyMap ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> [b]
-flakyMap m as <span class="fu">=</span> dist (<span class="fu">map</span> m as)</code></pre>
+flakyMap m as <span class="fu">=</span> dist (map m as)</code></pre>
 <p>...ale tu przechodzimy listę dwa razy, a wystarczy raz:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">traverseL ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> f [b]
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">traverseL ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> f [b]
 traverseL f []     <span class="fu">=</span> pure []
 traverseL f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> f x <span class="fu">&lt;*&gt;</span> traverseL f xs</code></pre>
 <p>Mozna to uogólnić na dowolne struktury iterowalne:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Traversable</span> t <span class="kw">where</span>
-<span class="ot">  traverse ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> t a     <span class="ot">-&gt;</span> f (t b)
-<span class="ot">  dist     ::</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span>               t (f a) <span class="ot">-&gt;</span> f (t a)
-  dist <span class="fu">=</span> traverse <span class="fu">id</span></code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Traversable</span> t <span class="kw">where</span>
+<span class="ot">  traverse ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> t a     <span class="ot">-&gt;</span> f (t b)
+<span class="ot">  dist     ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span>               t (f a) <span class="ot">-&gt;</span> f (t a)
+  dist <span class="fu">=</span> traverse id</code></pre>
 <p><strong>Ćwiczenie:</strong> napisz instancje <code>Traversable</code> dla drzew</p>
 <h1 id="nawiasy-idiomatyczne-idiom-brackets">Nawiasy idiomatyczne (idiom brackets)</h1>
 <p>Conor McBride zaproponował specjalną notację idiomatyczną:</p>
 <pre><code> (|f a1 .. an|) = pure f &lt;*&gt; a1 &lt;*&gt; .. &lt;*&gt; an
-sequence4 (c:cs) = (| (:) c (sequence cs) |)
+sequence4 (c:cs) = (| (:) c (sequence4 cs) |)
 eval4  (Add p q) = (| (+) (eval3 p) (eval3 q) |)</code></pre>
 <p>nie weszła ona do standardu Haskella, choć jest dostępna w SHE.</p>
 <p>https://personal.cis.strath.ac.uk/~conor/pub/she/</p>
 <h1 id="nawiasy-idiomatyczne-idiom-brackets-1">Nawiasy idiomatyczne (idiom brackets)</h1>
 <p>Przy pomocy klas możemy udostępnić podobną, choć brzydszą notację:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">sequence4 (c<span class="fu">:</span>cs) <span class="fu">=</span> iI (<span class="fu">:</span>) c (<span class="fu">sequence</span> cs) <span class="dt">Ii</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">sequence4 (c<span class="fu">:</span>cs) <span class="fu">=</span> iI (<span class="fu">:</span>) c (sequence4 cs) <span class="dt">Ii</span>
 eval4  (<span class="dt">Add</span> p q) <span class="fu">=</span> iI (<span class="fu">+</span>) (eval3 p) (eval3 q) <span class="dt">Ii</span>
 
-<span class="kw">class</span> <span class="kw">Applicative</span> i <span class="ot">=&gt;</span> <span class="dt">Idiomatic</span> i f g <span class="fu">|</span> g <span class="ot">-&gt;</span> f i <span class="kw">where</span>
+<span class="kw">class</span> <span class="dt">Applicative</span> i <span class="ot">=&gt;</span> <span class="dt">Idiomatic</span> i f g <span class="fu">|</span> g <span class="ot">-&gt;</span> f i <span class="kw">where</span>
 <span class="ot">   idiomatic ::</span> i f <span class="ot">-&gt;</span> g
  
 <span class="ot">iI ::</span> <span class="dt">Idiomatic</span> i f g <span class="ot">=&gt;</span> f <span class="ot">-&gt;</span> g
@@ -241,32 +241,32 @@ iI <span class="fu">=</span> idiomatic <span class="fu">.</span> pure
  
 <span class="kw">data</span> <span class="dt">Ii</span>  <span class="fu">=</span>  <span class="dt">Ii</span>
  
-<span class="kw">instance</span> <span class="kw">Applicative</span> i    <span class="ot">=&gt;</span> <span class="dt">Idiomatic</span> i x (<span class="dt">Ii</span> <span class="ot">-&gt;</span> i x) <span class="kw">where</span>
+<span class="kw">instance</span> <span class="dt">Applicative</span> i    <span class="ot">=&gt;</span> <span class="dt">Idiomatic</span> i x (<span class="dt">Ii</span> <span class="ot">-&gt;</span> i x) <span class="kw">where</span>
   idiomatic xi <span class="dt">Ii</span>     <span class="fu">=</span> xi
  
 <span class="kw">instance</span> <span class="dt">Idiomatic</span> i f g  <span class="ot">=&gt;</span> <span class="dt">Idiomatic</span> i (s <span class="ot">-&gt;</span> f) (i s <span class="ot">-&gt;</span> g) <span class="kw">where</span>
   idiomatic sfi si    <span class="fu">=</span> idiomatic (sfi <span class="fu">&lt;*&gt;</span> si)</code></pre>
 <h1 id="idiomy-a-monady">Idiomy a monady</h1>
 <p>Każda monada jest funktorem aplikatywnym, np.</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Applicative</span> <span class="dt">Maybe</span> <span class="kw">where</span>
-  pure <span class="fu">=</span> <span class="fu">return</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">Maybe</span> <span class="kw">where</span>
+  pure <span class="fu">=</span> return
   (<span class="fu">&lt;*&gt;</span>) <span class="fu">=</span> ap
 
-ap mf mx <span class="fu">=</span> mf <span class="fu">&gt;&gt;=</span> \f <span class="ot">-&gt;</span> m x <span class="fu">&gt;&gt;=</span> \x <span class="ot">-&gt;</span> <span class="fu">return</span> (f x)</code></pre>
+ap mf mx <span class="fu">=</span> mf <span class="fu">&gt;&gt;=</span> \f <span class="ot">-&gt;</span> m x <span class="fu">&gt;&gt;=</span> \x <span class="ot">-&gt;</span> return (f x)</code></pre>
 <p>Natomiast w ogólności nie na odwrót, np. nasza instancja dla list</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Applicative</span> [] <span class="kw">where</span>
-  pure <span class="fu">=</span> <span class="fu">repeat</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Applicative</span> [] <span class="kw">where</span>
+  pure <span class="fu">=</span> repeat
   (f <span class="fu">:</span> fs) <span class="fu">&lt;*&gt;</span> (x <span class="fu">:</span> xs) <span class="fu">=</span> f x <span class="fu">:</span> (fs <span class="fu">&lt;*&gt;</span> xs)
   _        <span class="fu">&lt;*&gt;</span> _        <span class="fu">=</span> []</code></pre>
 <p>czy da się zdefiniować <code>&gt;&gt;=</code> tak by <code>ap</code> odpowiadało <code>&lt;*&gt;</code> ?</p>
 <p><em>Ćwiczenie:</em> sprawdź, że prawa dla idiomów wynikają z praw dla monad.</p>
 <h1 id="idiomy-a-monady-1">Idiomy a monady</h1>
 <p>Strukturze monadycznej dla list odpowiada inna instancja Applicative dla list, gdzie listę funkcji aplikujemy do listy argumentów metodą &quot;każdy z każdym&quot;:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="kw">Applicative</span> [] <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Applicative</span> [] <span class="kw">where</span>
   pure <span class="fu">=</span> (<span class="fu">:</span>[])
-  fs <span class="fu">&lt;*&gt;</span> xs <span class="fu">=</span> <span class="fu">concat</span> <span class="fu">$</span> for fs (for xs)
+  fs <span class="fu">&lt;*&gt;</span> xs <span class="fu">=</span> concat <span class="fu">$</span> for fs (for xs)
   
-for <span class="fu">=</span> <span class="fu">flip</span> <span class="fu">map</span></code></pre>
+for <span class="fu">=</span> flip map</code></pre>
 <p><strong>Ćwiczenie:</strong> wykaż poprawność powyższej definicji</p>
 <p><strong>Ćwiczenie:</strong> napisz dwie instancje Applicative dla State.</p>
 <h1 id="idiomy-a-monady-2">Idiomy a monady</h1>
@@ -277,10 +277,10 @@ aif fc ft fe <span class="fu">=</span> cond <span class="fu">&lt;$&gt;</span> fc
   cond c t e <span class="fu">=</span><span class="kw">if</span> c <span class="kw">then</span> t <span class="kw">else</span> e
 
 main <span class="fu">=</span> <span class="kw">do</span>
-  <span class="fu">putStrLn</span> <span class="st">&quot;Monad:&quot;</span>
-  mif (<span class="fu">return</span> <span class="kw">True</span>) (<span class="fu">putStrLn</span> <span class="st">&quot;True&quot;</span>) (<span class="fu">putStrLn</span> <span class="st">&quot;False&quot;</span>)
-  <span class="fu">putStrLn</span> <span class="st">&quot;Idiom:&quot;</span>
-  aif (pure <span class="kw">True</span>) (<span class="fu">putStrLn</span> <span class="st">&quot;True&quot;</span>) (<span class="fu">putStrLn</span> <span class="st">&quot;False&quot;</span>)</code></pre>
+  putStrLn <span class="st">&quot;Monad:&quot;</span>
+  mif (return <span class="dt">True</span>) (putStrLn <span class="st">&quot;True&quot;</span>) (putStrLn <span class="st">&quot;False&quot;</span>)
+  putStrLn <span class="st">&quot;Idiom:&quot;</span>
+  aif (pure <span class="dt">True</span>) (putStrLn <span class="st">&quot;True&quot;</span>) (putStrLn <span class="st">&quot;False&quot;</span>)</code></pre>
 <pre><code>Monad:
 True
 Idiom:
@@ -292,7 +292,7 @@ False</code></pre>
 <span class="ot">  mempty ::</span> a
 <span class="ot">  mappend ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
 <span class="ot">  mconcat ::</span> [a] <span class="ot">-&gt;</span> a
-  mconcat <span class="fu">=</span> <span class="fu">foldr</span> mappend mempty
+  mconcat <span class="fu">=</span> foldr mappend mempty
 
 <span class="ot">(&lt;&gt;) ::</span> <span class="dt">Monoid</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
 (<span class="fu">&lt;&gt;</span>) <span class="fu">=</span> mappend</code></pre>
@@ -300,7 +300,7 @@ False</code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- typ fantomowy: nie używa swojego argumentu</span>
 <span class="kw">newtype</span> <span class="dt">Accy</span> o a <span class="fu">=</span> <span class="dt">Acc</span>{<span class="ot">acc::</span>o}
 
-<span class="kw">instance</span> <span class="dt">Monoid</span> o <span class="ot">=&gt;</span> <span class="kw">Applicative</span> (<span class="dt">Accy</span> o) <span class="kw">where</span>
+<span class="kw">instance</span> <span class="dt">Monoid</span> o <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (<span class="dt">Accy</span> o) <span class="kw">where</span>
   pure _ <span class="fu">=</span> <span class="dt">Acc</span> mempty
   <span class="dt">Acc</span> o1 <span class="fu">&lt;*&gt;</span> <span class="dt">Acc</span> o2 <span class="fu">=</span> <span class="dt">Acc</span> (o1 <span class="fu">&lt;&gt;</span> o2)</code></pre>
 <p>nie jest monadyczne, bo jak zdefiniować</p>
@@ -308,7 +308,7 @@ False</code></pre>
 <h1 id="akumulowanie-błędów">Akumulowanie błędów</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Except</span> err a <span class="fu">=</span> <span class="dt">Ok</span> a <span class="fu">|</span> <span class="dt">Failed</span> err
 
-<span class="kw">instance</span> <span class="dt">Monoid</span> err <span class="ot">=&gt;</span> <span class="kw">Applicative</span> (<span class="dt">Except</span> err) <span class="kw">where</span>
+<span class="kw">instance</span> <span class="dt">Monoid</span> err <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (<span class="dt">Except</span> err) <span class="kw">where</span>
   pure <span class="fu">=</span> <span class="dt">Ok</span>
   <span class="dt">Ok</span> f <span class="fu">&lt;*&gt;</span> <span class="dt">Ok</span> x <span class="fu">=</span> <span class="dt">Ok</span> (f x)
   <span class="dt">Ok</span> _ <span class="fu">&lt;*&gt;</span> <span class="dt">Failed</span> err <span class="fu">=</span> <span class="dt">Failed</span> err
@@ -322,9 +322,9 @@ False</code></pre>
 <span class="ot">condMap1 ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Either</span> a [b]
 condMap1 p f (x<span class="fu">:</span>xs) 
   <span class="fu">|</span> p x <span class="fu">=</span> <span class="kw">do</span> ys <span class="ot">&lt;-</span> condMap1 p f xs
-             <span class="fu">return</span> <span class="fu">$</span> f x<span class="fu">:</span>ys
-  <span class="fu">|</span> <span class="fu">otherwise</span> <span class="fu">=</span> <span class="kw">Left</span> x                 
-condMap1 p f [] <span class="fu">=</span> <span class="fu">return</span> []
+             return <span class="fu">$</span> f x<span class="fu">:</span>ys
+  <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="dt">Left</span> x                 
+condMap1 p f [] <span class="fu">=</span> return []
 
 <span class="co">-- &gt; condMap1 even (+1) [2,4]</span>
 <span class="co">-- Right [3,5]</span>
@@ -336,15 +336,15 @@ condMap1 p f [] <span class="fu">=</span> <span class="fu">return</span> []
 condMap3 p f (x<span class="fu">:</span>xs) <span class="fu">=</span> <span class="kw">do</span>
   y  <span class="ot">&lt;-</span> f <span class="fu">&lt;$&gt;</span> check p x
   ys <span class="ot">&lt;-</span> condMap3 p f xs
-  <span class="fu">return</span> (y<span class="fu">:</span>ys)
-  <span class="kw">where</span> check p x <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> <span class="kw">Right</span> x <span class="kw">else</span> <span class="kw">Left</span> x
-condMap3 p f [] <span class="fu">=</span> <span class="fu">return</span> []
+  return (y<span class="fu">:</span>ys)
+  <span class="kw">where</span> check p x <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> <span class="dt">Right</span> x <span class="kw">else</span> <span class="dt">Left</span> x
+condMap3 p f [] <span class="fu">=</span> return []
 
 <span class="ot">condMap4 ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Either</span> a [b]
 condMap4 p f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> ay <span class="fu">&lt;*&gt;</span> ays  <span class="kw">where</span>
   ay  <span class="fu">=</span> f <span class="fu">&lt;$&gt;</span> check p x
   ays <span class="fu">=</span> condMap4 p f xs
-  check p x <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> <span class="kw">Right</span> x <span class="kw">else</span> <span class="kw">Left</span> x
+  check p x <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> <span class="dt">Right</span> x <span class="kw">else</span> <span class="dt">Left</span> x
 condMap4 p f [] <span class="fu">=</span> pure []</code></pre>
 <h1 id="condmap-idiomatycznie">condMap idiomatycznie</h1>
 <p>Możemy zapisać condMap idiomatycznie uzywając ``monadycznej'' instancji Applicative dla Either oraz praw</p>
@@ -352,7 +352,7 @@ condMap4 p f [] <span class="fu">=</span> pure []</code></pre>
 <span class="co">-- f &lt;$&gt; g &lt;$&gt; x === f . g &lt;$&gt; x</span></code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">condMap5 ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span>b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Either</span> a [b]
 condMap5 p f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">.</span> f <span class="fu">&lt;$&gt;</span> (check p x) <span class="fu">&lt;*&gt;</span> condMap5 p f xs 
-  <span class="kw">where</span> check p x <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> <span class="kw">Right</span> x <span class="kw">else</span> <span class="kw">Left</span> x
+  <span class="kw">where</span> check p x <span class="fu">=</span> <span class="kw">if</span> p x <span class="kw">then</span> <span class="dt">Right</span> x <span class="kw">else</span> <span class="dt">Left</span> x
 condMap5 p f [] <span class="fu">=</span> pure []</code></pre>
 <h1 id="condmap-idiomatycznie-1">condMap idiomatycznie</h1>
 <p>Teraz wystarczy drobna zmiana</p>
@@ -362,7 +362,7 @@ condMap6 p f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span cla
 condMap6 p f [] <span class="fu">=</span> pure []
 
 <span class="ot">condEven ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Except</span> [<span class="dt">Int</span>] [<span class="dt">Int</span>]
-condEven <span class="fu">=</span> condMap6 <span class="fu">even</span> (<span class="fu">+</span><span class="dv">1</span>)
+condEven <span class="fu">=</span> condMap6 even (<span class="fu">+</span><span class="dv">1</span>)
 
 <span class="co">-- &gt; condEven [1..5]</span>
 <span class="co">-- Failed [1,3,5]</span>
@@ -372,26 +372,26 @@ condEven <span class="fu">=</span> condMap6 <span class="fu">even</span> (<span 
 <h1 id="składanie-funktorów">Składanie funktorów</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE ScopedTypeVariables, TypeOperators #-}</span>
 
-<span class="ot">gfmap ::</span> forall f g a b<span class="fu">.</span> (<span class="kw">Functor</span> g, <span class="kw">Functor</span> f) 
+<span class="ot">gfmap ::</span> forall f g a b<span class="fu">.</span> (<span class="dt">Functor</span> g, <span class="dt">Functor</span> f) 
          <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> g(f(a)) <span class="ot">-&gt;</span> g(f(b))
 gfmap fun a <span class="fu">=</span> mapG (mapF fun) a <span class="kw">where</span>
 <span class="ot">  mapF ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b
 <span class="ot">  mapG ::</span> (f a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> g (f a) <span class="ot">-&gt;</span> g (f b)
-  mapF <span class="fu">=</span> <span class="fu">fmap</span>
-  mapG <span class="fu">=</span> <span class="fu">fmap</span> </code></pre>
+  mapF <span class="fu">=</span> fmap
+  mapG <span class="fu">=</span> fmap </code></pre>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- g :: * -&gt; *,  f :: * -&gt; * =&gt; g :. f :: * -&gt; *</span>
 <span class="kw">newtype</span> (g <span class="fu">:.</span> f) a <span class="fu">=</span> <span class="dt">O</span> {<span class="ot"> unO ::</span> (g (f a)) }
 
-<span class="kw">instance</span> (<span class="kw">Functor</span> g, <span class="kw">Functor</span> f) <span class="ot">=&gt;</span> <span class="kw">Functor</span> (g <span class="fu">:.</span> f) <span class="kw">where</span>
+<span class="kw">instance</span> (<span class="dt">Functor</span> g, <span class="dt">Functor</span> f) <span class="ot">=&gt;</span> <span class="dt">Functor</span> (g <span class="fu">:.</span> f) <span class="kw">where</span>
 <span class="co">--  fmap fun (O gfa) = O $ fmap (fmap fun) $ gfa</span>
-  <span class="fu">fmap</span> fun (<span class="dt">O</span> gfa) <span class="fu">=</span> <span class="dt">O</span> <span class="fu">$</span> (fun <span class="fu">&lt;$&gt;</span>) <span class="fu">&lt;$&gt;</span> gfa</code></pre>
+  fmap fun (<span class="dt">O</span> gfa) <span class="fu">=</span> <span class="dt">O</span> <span class="fu">$</span> (fun <span class="fu">&lt;$&gt;</span>) <span class="fu">&lt;$&gt;</span> gfa</code></pre>
 <h1 id="składanie-idiomów">Składanie idiomów</h1>
 <p>Składanie monad jest trudne (i nie zawsze możliwe).</p>
 <p>Składanie idiomów jest łatwe (no, prawie)</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- g :: * -&gt; *,  f :: * -&gt; * =&gt; g :. f :: * -&gt; *</span>
 <span class="kw">newtype</span> (g <span class="fu">:.</span> f) a <span class="fu">=</span> <span class="dt">O</span> {<span class="ot"> unO ::</span> (g (f a)) }
 
-<span class="kw">instance</span> (<span class="kw">Applicative</span> g, <span class="kw">Applicative</span> f) <span class="ot">=&gt;</span> <span class="kw">Applicative</span> (g <span class="fu">:.</span> f) <span class="kw">where</span>
+<span class="kw">instance</span> (<span class="dt">Applicative</span> g, <span class="dt">Applicative</span> f) <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (g <span class="fu">:.</span> f) <span class="kw">where</span>
   <span class="co">-- pure :: a -&gt; (g :. f) a </span>
   <span class="co">--      ~~ a -&gt; g (f a) </span>
   pure  <span class="fu">=</span> <span class="dt">O</span> <span class="fu">.</span> pure <span class="fu">.</span> pure
@@ -414,22 +414,23 @@ i sprawdzić, że złożenie funktorów aplikatywnych spełnia prawa dla funktor
 
 <h1 id="kategoryjnie-strong-lax-monoidal-functor">Kategoryjnie: strong lax monoidal functor</h1>
 <p>Operacja <code>&lt;*&gt;</code> jest asymetryczna, ale jest równoważna definicja symetryczna:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Monoidal</span> f <span class="kw">where</span>                  
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Monoidal</span> f <span class="kw">where</span>                  
 <span class="ot">  unit ::</span> f ()
 <span class="ot">  pair ::</span> f a <span class="ot">-&gt;</span> f b <span class="ot">-&gt;</span> f (a,b)
   
-<span class="kw">instance</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Monoidal</span> f <span class="kw">where</span>
+<span class="kw">instance</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Monoidal</span> f <span class="kw">where</span>
   unit <span class="fu">=</span> pure ()
   pair fa fb <span class="fu">=</span> (,) <span class="fu">&lt;$&gt;</span> fa <span class="fu">&lt;*&gt;</span> fb
   
-<span class="kw">instance</span> <span class="dt">Monoidal</span> f <span class="ot">=&gt;</span> <span class="kw">Applicative</span> f <span class="kw">where</span>  
-  pure x <span class="fu">=</span> <span class="fu">fmap</span> (<span class="fu">const</span> x) unit
+<span class="kw">instance</span> <span class="dt">Monoidal</span> f <span class="ot">=&gt;</span> <span class="dt">Applicative</span> f <span class="kw">where</span>  
+  pure x      <span class="fu">=</span> fmap (\() <span class="ot">-&gt;</span> x) unit
+             <span class="co">-- fmap (const x) unit </span>
     mf <span class="fu">&lt;*&gt;</span> mx <span class="fu">=</span> (\(f,x) <span class="ot">-&gt;</span> f x) <span class="fu">&lt;$&gt;</span> pair mf mx
-  <span class="co">-- albo uncurry ($) &lt;$&gt; pair mf mx</span></code></pre>
+             <span class="co">-- uncurry ($) &lt;$&gt; pair mf mx</span></code></pre>
 <p>Żeby uzyskać prawdziwą równoważność trzeba oczywiście mieć pewne prawa dla Monoidal. Okazuje się, że jest to coś, co w teori kategorii nazywa się <em>strong lax monoidal functor</em> ;-)</p>
 <h1 id="parsery">Parsery</h1>
 <p>Zauważmy natomiast, że <code>Monoidal</code> jest naturalną strukturą dla parserów</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Monoidal</span> f <span class="kw">where</span>                  
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Monoidal</span> f <span class="kw">where</span>                  
 <span class="ot">  unit ::</span> f ()
 <span class="ot">  pair ::</span> f a <span class="ot">-&gt;</span> f b <span class="ot">-&gt;</span> f (a,b)
 
@@ -437,16 +438,16 @@ i sprawdzić, że złożenie funktorów aplikatywnych spełnia prawa dla funktor
 <span class="ot">thenP ::</span> <span class="dt">Parser</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> b <span class="ot">-&gt;</span> <span class="dt">Parser</span> (a,b)</code></pre>
 <p>tyle, że typy robią się skomplikowane, dlatego łatwiej używać <code>Applicative</code></p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- S   -&gt;  ( S ) S | epsilon</span>
-parens <span class="fu">=</span> (\_ s _ s2 <span class="ot">-&gt;</span> <span class="fu">max</span> (<span class="dv">1</span><span class="fu">+</span>s) s2) <span class="fu">&lt;$&gt;</span> 
+parens <span class="fu">=</span> (\_ s _ s2 <span class="ot">-&gt;</span> max (<span class="dv">1</span><span class="fu">+</span>s) s2) <span class="fu">&lt;$&gt;</span> 
          char <span class="ch">&#39;(&#39;</span> <span class="fu">&lt;*&gt;</span> parens <span class="fu">&lt;*&gt;</span> char <span class="ch">&#39;)&#39;</span> <span class="fu">&lt;*&gt;</span> parens 
          <span class="fu">&lt;|&gt;</span> pure <span class="dv">0</span></code></pre>
 <h1 id="alternative">Alternative</h1>
 <p>Potrzebujemy jeszcze tylko alternatywy:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Alternative</span> f <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> <span class="dt">Alternative</span> f <span class="kw">where</span>
 <span class="ot">  empty ::</span> f a
 <span class="ot">  (&lt;|&gt;) ::</span> f a <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f a</code></pre>
 <p>spełniającej aksjomaty monoidu. Patrz też MonadPlus:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">MonadPlus</span> m <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">MonadPlus</span> m <span class="kw">where</span>
 <span class="ot">  mzero ::</span> m a
 <span class="ot">  mplus ::</span> m a <span class="ot">-&gt;</span> m a <span class="ot">-&gt;</span> m a
 

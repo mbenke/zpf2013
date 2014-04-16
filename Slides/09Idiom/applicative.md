@@ -142,11 +142,11 @@ kłopoty z transpozycja pustej macierzy, ale:
 # Motywacja - `zipWith`
 
 ~~~~ {.haskell}
-
 zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
 zipWith3 :: (a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d]
 -- zipWith_n :: (a1 -> ... -> an -> b) -> [a1] -> ... -> [an] -> [b]
 -- zipWith_n f as1 ... asn = repeat f `zap` as1 `zap` ... `zap` asn
+-- zap  ~ 'zippy ap'
 
 transpose :: [[a]] -> [[a]]
 transpose [] = repeat []
@@ -180,12 +180,12 @@ eval1 (Val i) env = i
 eval1 (Add p q) env = eval1 p env + eval1 q env
 
 eval2 (Var x) = fetch x
-eval2 (Val i) = k i
-eval2 (Add p q) = k (+) `s` eval2 p `s` eval2 q
+eval2 (Val i) = const i
+eval2 (Add p q) = const (+) `apply` eval2 p 
+                            `apply` eval2 q
 
-k x y = x
-s :: (env -> a -> b) -> (env -> a) -> (env -> b)
-s ef es env = (ef env) (es env)
+apply :: (env -> a -> b) -> (env -> a) -> (env -> b)
+apply ef es env = (ef env) (es env)
 ~~~~
 
 # Klasa Applicative
