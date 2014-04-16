@@ -1,0 +1,65 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{mbmr}[2013/09/20]
+%
+%% Options
+%
+\newif\ifpolish\polishfalse
+\newif\if@timesfont\@timesfontfalse
+\newif\if@palatinofont\@palatinofontfalse
+\newif\if@helveticafont\@helveticafontfalse
+
+\DeclareOption{polish}{
+\polishtrue
+}
+\DeclareOption{palatino}{
+\@palatinofonttrue
+}
+\DeclareOption{times}{
+\@timesfonttrue
+}
+\DeclareOption{helvetica}{
+\@helveticafonttrue
+}
+\ExecuteOptions{helvetica}
+\ProcessOptions\relax
+%
+%% Theme
+%
+\mode<presentation>{
+\usetheme{Boadilla}
+%\usetheme{Warsaw}
+\setbeamertemplate{navigation symbols}{}
+}
+%
+%%
+%
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\ifpolish
+\usepackage[polish]{babel}
+\fi
+%\usepackage{ifpdf}
+%
+%%% Fonts
+%
+% OBS! pxfonts break TikZ, so use palatino/kpfonts instead
+\if@timesfont
+ \usepackage{times}
+\fi
+\if@palatinofont
+\usepackage{kpfonts,palatino}
+%\usepackage[sc]{mathpazo}
+\usepackage{eulervm}
+\fi
+\if@helveticafont
+\usepackage[scaled]{helvet}
+\fi
+%
+%\usepackage{verbatim}
+\usepackage{alltt}
+\usepackage{tikz}
+\usetikzlibrary{arrows,trees,shapes}
+%\usepackage[pdftex,usenames,dvipsnames]{color}
+%\usepackage{proof}
+
+\endinput
