@@ -469,7 +469,7 @@ instance Monoid err => Applicative (Except err) where
   Ok f <*> Ok x = Ok (f x)
   Ok _ <*> Failed err = Failed err
   Failed err <*> Ok _ = Failed err
-  Failed e1 <*> Failed e2 = Failed (e1 `mappend` e2)
+  Failed e1 <*> Failed e2 = Failed (e1 <> e2)
 ~~~~
 
 trudno zrobić analog monadyczny (jest monada `Writer`, ale to nie to samo)

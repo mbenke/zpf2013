@@ -322,7 +322,7 @@ False</code></pre>
   <span class="dt">Ok</span> f <span class="fu">&lt;*&gt;</span> <span class="dt">Ok</span> x <span class="fu">=</span> <span class="dt">Ok</span> (f x)
   <span class="dt">Ok</span> _ <span class="fu">&lt;*&gt;</span> <span class="dt">Failed</span> err <span class="fu">=</span> <span class="dt">Failed</span> err
   <span class="dt">Failed</span> err <span class="fu">&lt;*&gt;</span> <span class="dt">Ok</span> _ <span class="fu">=</span> <span class="dt">Failed</span> err
-  <span class="dt">Failed</span> e1 <span class="fu">&lt;*&gt;</span> <span class="dt">Failed</span> e2 <span class="fu">=</span> <span class="dt">Failed</span> (e1 <span class="ot">`mappend`</span> e2)</code></pre>
+  <span class="dt">Failed</span> e1 <span class="fu">&lt;*&gt;</span> <span class="dt">Failed</span> e2 <span class="fu">=</span> <span class="dt">Failed</span> (e1 <span class="fu">&lt;&gt;</span> e2)</code></pre>
 <p>trudno zrobić analog monadyczny (jest monada <code>Writer</code>, ale to nie to samo)</p>
 <h1 id="przykład">Przykład</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- condMap p f xs | all p xs = map f xs</span>
