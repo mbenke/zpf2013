@@ -349,7 +349,17 @@ instance Applicative i    => Idiomatic i x (Ii -> i x) where
  
 instance Idiomatic i f g  => Idiomatic i (s -> f) (i s -> g) where
   idiomatic sfi si    = idiomatic (sfi <*> si)
+~~~~
 
+# Control.Applicative.QQ.Idiom
+
+Innym rozwiązaniem jest użycie Template Haskell:
+
+~~~~
+-- package applicative-quoters
+ [i| subtract [1,2,3] [10,20,30] |]
+ -> pure subtract <*> [1,2,3] <*> [10,20,30]
+ -> [9,19,29,8,18,28,7,17,27]
 ~~~~
 
 # Idiomy a monady

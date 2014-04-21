@@ -285,6 +285,15 @@ iI <span class="fu">=</span> idiomatic <span class="fu">.</span> pure
 <span class="kw">instance</span> <span class="dt">Idiomatic</span> i f g  <span class="ot">=&gt;</span> <span class="dt">Idiomatic</span> i (s <span class="ot">-&gt;</span> f) (i s <span class="ot">-&gt;</span> g) <span class="kw">where</span>
   idiomatic sfi si    <span class="fu">=</span> idiomatic (sfi <span class="fu">&lt;*&gt;</span> si)</code></pre>
 </div>
+<div id="control.applicative.qq.idiom" class="slide section level1">
+<h1>Control.Applicative.QQ.Idiom</h1>
+<p>Innym rozwiązaniem jest użycie Template Haskell:</p>
+<pre><code>-- package applicative-quoters
+
+ [i| subtract [1,2,3] [10,20,30] |]
+ -&gt; pure subtract &lt;*&gt; [1,2,3] &lt;*&gt; [10,20,30]
+ -&gt; [9,19,29,8,18,28,7,17,27]</code></pre>
+</div>
 <div id="idiomy-a-monady" class="slide section level1">
 <h1>Idiomy a monady</h1>
 <p>Każda monada jest funktorem aplikatywnym, np.</p>
