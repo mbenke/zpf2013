@@ -472,7 +472,8 @@ instance Monoid err => Applicative (Except err) where
   Failed e1 <*> Failed e2 = Failed (e1 `mappend` e2)
 ~~~~
 
-trudno zrobić analog monadyczny
+trudno zrobić analog monadyczny (jest monada `Writer`, ale to nie to samo)
+
 
 # Przykład
 

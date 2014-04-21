@@ -252,7 +252,6 @@ iI <span class="fu">=</span> idiomatic <span class="fu">.</span> pure
 <h1 id="control.applicative.qq.idiom">Control.Applicative.QQ.Idiom</h1>
 <p>Innym rozwiązaniem jest użycie Template Haskell:</p>
 <pre><code>-- package applicative-quoters
-
  [i| subtract [1,2,3] [10,20,30] |]
  -&gt; pure subtract &lt;*&gt; [1,2,3] &lt;*&gt; [10,20,30]
  -&gt; [9,19,29,8,18,28,7,17,27]</code></pre>
@@ -324,7 +323,7 @@ False</code></pre>
   <span class="dt">Ok</span> _ <span class="fu">&lt;*&gt;</span> <span class="dt">Failed</span> err <span class="fu">=</span> <span class="dt">Failed</span> err
   <span class="dt">Failed</span> err <span class="fu">&lt;*&gt;</span> <span class="dt">Ok</span> _ <span class="fu">=</span> <span class="dt">Failed</span> err
   <span class="dt">Failed</span> e1 <span class="fu">&lt;*&gt;</span> <span class="dt">Failed</span> e2 <span class="fu">=</span> <span class="dt">Failed</span> (e1 <span class="ot">`mappend`</span> e2)</code></pre>
-<p>trudno zrobić analog monadyczny</p>
+<p>trudno zrobić analog monadyczny (jest monada <code>Writer</code>, ale to nie to samo)</p>
 <h1 id="przykład">Przykład</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- condMap p f xs | all p xs = map f xs</span>
 <span class="co">--                | otherwise = blad</span>
