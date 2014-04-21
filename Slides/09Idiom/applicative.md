@@ -303,11 +303,14 @@ traverseL f (x:xs) = (:) <$> f x <*> traverseL f xs
 Mozna to uogólnić na dowolne struktury iterowalne:
 
 ~~~~ {.haskell}
-class Traversable t where
+class Functor t => Traversable t where
   traverse :: Applicative f => (a -> f b) -> t a     -> f (t b)
   dist     :: Applicative f =>               t (f a) -> f (t a)
   dist = traverse id
+  traverse f = dist . fmap f
 ~~~~
+
+NB to jest definicja z oruginalnej pracy - Data.Traversable używa innej definicji
 
 **Ćwiczenie:** napisz instancje `Traversable` dla drzew
 

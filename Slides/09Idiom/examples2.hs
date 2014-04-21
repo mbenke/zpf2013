@@ -74,3 +74,6 @@ eval4  (Add p q) = iI (+) (eval3 p) (eval3 q) Ii
 dist :: Applicative f => [f a] => f [a]
 dist []     = pure []
 dist (x:xs) = (:) <$> x <*> dist xs
+
+flakyMap :: (a -> Maybe b) -> [a] -> Maybe [b]
+flakyMap m as = dist (map m as)

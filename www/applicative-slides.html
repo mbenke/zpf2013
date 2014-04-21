@@ -248,10 +248,12 @@ flakyMap m as <span class="fu">=</span> dist (map m as)</code></pre>
 traverseL f []     <span class="fu">=</span> pure []
 traverseL f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> f x <span class="fu">&lt;*&gt;</span> traverseL f xs</code></pre>
 <p>Mozna to uogólnić na dowolne struktury iterowalne:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Traversable</span> t <span class="kw">where</span>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Functor</span> t <span class="ot">=&gt;</span> <span class="dt">Traversable</span> t <span class="kw">where</span>
 <span class="ot">  traverse ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> f b) <span class="ot">-&gt;</span> t a     <span class="ot">-&gt;</span> f (t b)
 <span class="ot">  dist     ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span>               t (f a) <span class="ot">-&gt;</span> f (t a)
-  dist <span class="fu">=</span> traverse id</code></pre>
+  dist <span class="fu">=</span> traverse id
+  traverse f <span class="fu">=</span> dist <span class="fu">.</span> fmap f</code></pre>
+<p>NB to jest definicja z oruginalnej pracy - Data.Traversable używa innej definicji</p>
 <p><strong>Ćwiczenie:</strong> napisz instancje <code>Traversable</code> dla drzew</p>
 </div>
 <div id="nawiasy-idiomatyczne-idiom-brackets" class="slide section level1">

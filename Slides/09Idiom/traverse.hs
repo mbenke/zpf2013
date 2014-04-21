@@ -15,10 +15,11 @@ traverseL :: Applicative f => (a -> f b) -> [a] -> f [b]
 traverseL f []     = pure []
 traverseL f (x:xs) = (:) <$> f x <*> traverseL f xs
 
-class Traversable t where
+class Functor t => Traversable t where
   traverse :: Applicative f => (a -> f b) -> t a     -> f (t b)
   dist     :: Applicative f =>               t (f a) -> f (t a)
   dist = traverse id
+  traverse f = dist . fmap f
   
 instance Traversable [] where
   traverse = traverseL
