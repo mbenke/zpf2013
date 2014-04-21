@@ -112,6 +112,7 @@ zipWith _  _      _      <span class="fu">=</span> []
 
 zip <span class="fu">=</span> zipWith (,)
 consAll <span class="fu">=</span> zipWith (<span class="fu">:</span>)</code></pre>
+<p>NB <code>zip [1,2,3] (repeat 0) = [(1,0),(2,0),(3,0)]</code></p>
 </div>
 <div id="jeszcze-raz-transpose" class="slide section level1">
 <h1>Jeszcze raz transpose</h1>
@@ -233,7 +234,7 @@ sequence3 (c<span class="fu">:</span>cs) <span class="fu">=</span> (<span class=
 transpose3 [] <span class="fu">=</span> pure []
 transpose3 (xs <span class="fu">:</span>xss) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> xs <span class="fu">&lt;*&gt;</span> transpose3 xss</code></pre>
 <p>To jest ta sama funkcja:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dist ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> [f a] <span class="ot">=&gt;</span> f [a]
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">dist ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span> [f a] <span class="ot">-&gt;</span> f [a]
 dist []     <span class="fu">=</span> pure []
 dist (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span class="fu">:</span>) <span class="fu">&lt;$&gt;</span> x <span class="fu">&lt;*&gt;</span> dist xs</code></pre>
 </div>

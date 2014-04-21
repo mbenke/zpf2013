@@ -113,6 +113,8 @@ zip = zipWith (,)
 consAll = zipWith (:)
 ~~~~
 
+NB `zip [1,2,3] (repeat 0) = [(1,0),(2,0),(3,0)]`
+
 # Jeszcze raz transpose
 
 Obserwacja:
@@ -276,7 +278,7 @@ transpose3 (xs :xss) = (:) <$> xs <*> transpose3 xss
 To jest ta sama funkcja:
 
 ~~~~ {.haskell}
-dist :: Applicative f => [f a] => f [a]
+dist :: Applicative f => [f a] -> f [a]
 dist []     = pure []
 dist (x:xs) = (:) <$> x <*> dist xs
 ~~~~
