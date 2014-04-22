@@ -314,6 +314,75 @@ NB to jest definicja z oryginalnej pracy - `Data.Traversable` używa innej defin
 
 **Ćwiczenie:** napisz instancje `Traversable` dla drzew
 
+# Monoid
+
+~~~~ {.haskell}
+-- Data.Monoid
+class Monoid a where
+  mempty :: a
+  mappend :: a -> a -> a
+  mconcat :: [a] -> a
+  mconcat = foldr mappend mempty
+
+(<>) :: Monoid a => a -> a -> a
+(<>) = mappend
+~~~~
+
+Monoid jest w pewnym sensie uogólnieniem list:
+
+~~~~ {.haskell}
+instance Monoid [] where
+  mempty = []
+  mappend = (++)
+~~~~
+
+# Endo
+
+~~~~ {.haskell}
+-- | The monoid of endomorphisms under composition.
+newtype Endo a = Endo { appEndo :: a -> a }
+               deriving (Generic)
+
+instance Monoid (Endo a) where
+        mempty = Endo id
+        Endo f `mappend` Endo g = Endo (f . g)
+~~~~
+
+
+# Data.Foldable
+
+~~~~ {.haskell}
+import Prelude hiding (foldl, foldr, foldl1, foldr1)
+import qualified Prelude(foldl, foldr, foldl1, foldr1)
+import Data.Monoid
+
+-- Prelude.foldr :: (a -> b -> b) -> b -> [a] -> b
+
+class Foldable t where
+  foldr :: (a -> b -> b) -> b -> t a -> b
+
+    -- | Map each element of the structure to a monoid,
+    -- and combine the results.
+  foldMap :: Monoid m => (a -> m) -> t a -> m
+
+  -- | Combine the elements of a structure using a monoid.
+  fold :: Monoid m => t m -> m
+  fold = foldMap id
+
+  -- foldl, foldr',foldl',foldl1,foldr1,...      
+~~~~
+
+*Ćwiczenie:* 
+
+* napisz kilka  instancji `Foldable`
+* wyraź `foldr` przez `foldMap` i vice versa
+* napisz funkcję 
+
+~~~~ {.haskell}
+toList :: Foldable t => t a -> [a]
+~~~~
+
+
 # Nawiasy idiomatyczne (idiom brackets)
 
 Conor McBride zaproponował specjalną notację idiomatyczną:
@@ -428,21 +497,8 @@ True
 False
 ~~~~
 
-# Monoid
 
-~~~~ {.haskell}
--- Data.Monoid
-class Monoid a where
-  mempty :: a
-  mappend :: a -> a -> a
-  mconcat :: [a] -> a
-  mconcat = foldr mappend mempty
-
-(<>) :: Monoid a => a -> a -> a
-(<>) = mappend
-~~~~
-
-Monoid, aplikatywnie:
+# Monoid, aplikatywnie
 
 ~~~~ {.haskell}
 -- typ fantomowy: nie używa swojego argumentu

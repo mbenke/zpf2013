@@ -256,6 +256,60 @@ traverseL f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span clas
 <p>NB to jest definicja z oryginalnej pracy - <code>Data.Traversable</code> używa innej definicji</p>
 <p><strong>Ćwiczenie:</strong> napisz instancje <code>Traversable</code> dla drzew</p>
 </div>
+<div id="monoid" class="slide section level1">
+<h1>Monoid</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Data.Monoid</span>
+<span class="kw">class</span> <span class="dt">Monoid</span> a <span class="kw">where</span>
+<span class="ot">  mempty ::</span> a
+<span class="ot">  mappend ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
+<span class="ot">  mconcat ::</span> [a] <span class="ot">-&gt;</span> a
+  mconcat <span class="fu">=</span> foldr mappend mempty
+
+<span class="ot">(&lt;&gt;) ::</span> <span class="dt">Monoid</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
+(<span class="fu">&lt;&gt;</span>) <span class="fu">=</span> mappend</code></pre>
+<p>Monoid jest w pewnym sensie uogólnieniem list:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monoid</span> [] <span class="kw">where</span>
+  mempty <span class="fu">=</span> []
+  mappend <span class="fu">=</span> (<span class="fu">++</span>)</code></pre>
+</div>
+<div id="endo" class="slide section level1">
+<h1>Endo</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | The monoid of endomorphisms under composition.</span>
+<span class="kw">newtype</span> <span class="dt">Endo</span> a <span class="fu">=</span> <span class="dt">Endo</span> {<span class="ot"> appEndo ::</span> a <span class="ot">-&gt;</span> a }
+               <span class="kw">deriving</span> (<span class="dt">Generic</span>)
+
+<span class="kw">instance</span> <span class="dt">Monoid</span> (<span class="dt">Endo</span> a) <span class="kw">where</span>
+        mempty <span class="fu">=</span> <span class="dt">Endo</span> id
+        <span class="dt">Endo</span> f <span class="ot">`mappend`</span> <span class="dt">Endo</span> g <span class="fu">=</span> <span class="dt">Endo</span> (f <span class="fu">.</span> g)</code></pre>
+</div>
+<div id="data.foldable" class="slide section level1">
+<h1>Data.Foldable</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Prelude</span> <span class="kw">hiding</span> (foldl, foldr, foldl1, foldr1)
+<span class="kw">import qualified</span> <span class="dt">Prelude</span>(foldl, foldr, foldl1, foldr1)
+<span class="kw">import </span><span class="dt">Data.Monoid</span>
+
+<span class="co">-- Prelude.foldr :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b</span>
+
+<span class="kw">class</span> <span class="dt">Foldable</span> t <span class="kw">where</span>
+<span class="ot">  foldr ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> t a <span class="ot">-&gt;</span> b
+
+    <span class="co">-- | Map each element of the structure to a monoid,</span>
+    <span class="co">-- and combine the results.</span>
+<span class="ot">  foldMap ::</span> <span class="dt">Monoid</span> m <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m) <span class="ot">-&gt;</span> t a <span class="ot">-&gt;</span> m
+
+  <span class="co">-- | Combine the elements of a structure using a monoid.</span>
+<span class="ot">  fold ::</span> <span class="dt">Monoid</span> m <span class="ot">=&gt;</span> t m <span class="ot">-&gt;</span> m
+  fold <span class="fu">=</span> foldMap id
+
+  <span class="co">-- foldl, foldr&#39;,foldl&#39;,foldl1,foldr1,...      </span></code></pre>
+<p><em>Ćwiczenie:</em></p>
+<ul>
+<li>napisz kilka instancji <code>Foldable</code></li>
+<li>wyraź <code>foldr</code> przez <code>foldMap</code> i vice versa</li>
+<li>napisz funkcję</li>
+</ul>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">toList ::</span> <span class="dt">Foldable</span> t <span class="ot">=&gt;</span> t a <span class="ot">-&gt;</span> [a]</code></pre>
+</div>
 <div id="nawiasy-idiomatyczne-idiom-brackets" class="slide section level1">
 <h1>Nawiasy idiomatyczne (idiom brackets)</h1>
 <p>Conor McBride zaproponował specjalną notację idiomatyczną:</p>
@@ -339,18 +393,8 @@ Idiom:
 True
 False</code></pre>
 </div>
-<div id="monoid" class="slide section level1">
-<h1>Monoid</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Data.Monoid</span>
-<span class="kw">class</span> <span class="dt">Monoid</span> a <span class="kw">where</span>
-<span class="ot">  mempty ::</span> a
-<span class="ot">  mappend ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
-<span class="ot">  mconcat ::</span> [a] <span class="ot">-&gt;</span> a
-  mconcat <span class="fu">=</span> foldr mappend mempty
-
-<span class="ot">(&lt;&gt;) ::</span> <span class="dt">Monoid</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
-(<span class="fu">&lt;&gt;</span>) <span class="fu">=</span> mappend</code></pre>
-<p>Monoid, aplikatywnie:</p>
+<div id="monoid-aplikatywnie" class="slide section level1">
+<h1>Monoid, aplikatywnie</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- typ fantomowy: nie używa swojego argumentu</span>
 <span class="kw">newtype</span> <span class="dt">Accy</span> o a <span class="fu">=</span> <span class="dt">Acc</span>{<span class="ot">acc::</span>o}
 
