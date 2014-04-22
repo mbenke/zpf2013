@@ -253,7 +253,7 @@ traverseL f (x<span class="fu">:</span>xs) <span class="fu">=</span> (<span clas
 <span class="ot">  dist     ::</span> <span class="dt">Applicative</span> f <span class="ot">=&gt;</span>               t (f a) <span class="ot">-&gt;</span> f (t a)
   dist <span class="fu">=</span> traverse id
   traverse f <span class="fu">=</span> dist <span class="fu">.</span> fmap f</code></pre>
-<p>NB to jest definicja z oruginalnej pracy - Data.Traversable używa innej definicji</p>
+<p>NB to jest definicja z oryginalnej pracy - <code>Data.Traversable</code> używa innej definicji</p>
 <p><strong>Ćwiczenie:</strong> napisz instancje <code>Traversable</code> dla drzew</p>
 </div>
 <div id="nawiasy-idiomatyczne-idiom-brackets" class="slide section level1">

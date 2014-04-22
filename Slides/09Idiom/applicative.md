@@ -310,7 +310,7 @@ class Functor t => Traversable t where
   traverse f = dist . fmap f
 ~~~~
 
-NB to jest definicja z oruginalnej pracy - Data.Traversable używa innej definicji
+NB to jest definicja z oryginalnej pracy - `Data.Traversable` używa innej definicji
 
 **Ćwiczenie:** napisz instancje `Traversable` dla drzew
 
