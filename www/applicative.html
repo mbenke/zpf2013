@@ -168,10 +168,13 @@ apply ef es env <span class="fu">=</span> (ef env) (es env)</code></pre>
 <span class="co">-- &gt;&gt;&gt; pure (+) &lt;*&gt; Just 2 &lt;*&gt; Just 2</span>
 <span class="co">-- Just 4</span></code></pre>
 <h1 id="prawa">Prawa</h1>
+<p>Zgodność z fmap:</p>
 <pre><code>fmap g x = pure g &lt;*&gt; x
-pure id &lt;*&gt; u = u (konsekwencja powyższego i praw fmap)
-pure (.) &lt;*&gt; u &lt;*&gt; v &lt;*&gt; w =  u &lt;*&gt; v &lt;*&gt; w
-pure f &lt;*&gt; pure x = pure (f x)
+pure id &lt;*&gt; u = u (konsekwencja powyższego i praw fmap)</code></pre>
+<p>Złożenie</p>
+<pre><code>pure (.) &lt;*&gt; u &lt;*&gt; v &lt;*&gt; w =  u &lt;*&gt; (v &lt;*&gt; w)</code></pre>
+<p>Homomorfizm (aplikatywność)</p>
+<pre><code>pure f &lt;*&gt; pure x = pure (f x)
 u &lt;*&gt; pure x = pure (\f -&gt; f x) &lt;*&gt; u</code></pre>
 <p>W stylu aplikatywnym <code>fmap</code> zapisujemy jako <code>&lt;$&gt;</code>:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">f <span class="fu">&lt;$&gt;</span> u <span class="fu">=</span> pure f <span class="fu">&lt;*&gt;</span> u</code></pre>

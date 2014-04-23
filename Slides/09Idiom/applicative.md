@@ -223,10 +223,22 @@ instance Applicative Maybe where
 
 # Prawa
 
+Zgodność z fmap:
+
 ~~~~
 fmap g x = pure g <*> x
 pure id <*> u = u (konsekwencja powyższego i praw fmap)
-pure (.) <*> u <*> v <*> w =  u <*> v <*> w
+~~~~
+
+Złożenie
+
+~~~~
+pure (.) <*> u <*> v <*> w =  u <*> (v <*> w)
+~~~~
+
+Homomorfizm (aplikatywność)
+
+~~~~
 pure f <*> pure x = pure (f x)
 u <*> pure x = pure (\f -> f x) <*> u
 ~~~~
