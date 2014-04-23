@@ -611,6 +611,115 @@ Składanie monad jest trudne (i nie zawsze możliwe).
 
 Składanie idiomów jest łatwe (no, prawie)
 
+Mamy:
+
+~~~~ {.haskell}
+apF :: F (a -> b) -> F a -> F b
+apG :: G (a -> b) -> G a -> G b
+~~~~
+
+potrzebujemy (<*>) dla `G :. F`
+
+~~~~ {.haskell}
+apGF :: G(F(a -> b)) -> G(F a) -> G(F b)
+~~~~
+
+# Składanie idiomów
+
+Mamy:
+
+~~~~ {.haskell}
+apF :: F (a -> b) -> F a -> F b
+apG :: G (a -> b) -> G a -> G b
+~~~~
+
+potrzebujemy (<*>) dla `G :. F`
+
+~~~~ {.haskell}
+apGF :: G(F(a -> b)) -> G(F a) -> G(F b)
+~~~~
+
+~~~~ {.haskell}
+      apF  ::   F (a -> b) ->  (F a -> F b)
+fmapG(apF) ::   ?
+~~~~
+
+
+# Składanie idiomów
+
+Mamy:
+
+~~~~ {.haskell}
+apF :: F (a -> b) -> F a -> F b
+apG :: G (a -> b) -> G a -> G b
+~~~~
+
+potrzebujemy (<*>) dla `G :. F`
+
+~~~~ {.haskell}
+apGF :: G(F(a -> b)) -> G(F a) -> G(F b)
+~~~~
+
+
+
+~~~~ {.haskell}
+      apF  ::   F (a -> b) ->  (F a -> F b)
+fmapG(apF) :: G(F(a -> b)) -> G(F a -> F b)
+~~~~
+
+# Składanie idiomów
+
+Mamy:
+
+~~~~ {.haskell}
+apF :: F (a -> b) -> F a -> F b
+apG :: G (a -> b) -> G a -> G b
+~~~~
+
+potrzebujemy (<*>) dla `G :. F`
+
+~~~~ {.haskell}
+apGF :: G(F(a -> b)) -> G(F a) -> G(F b)
+~~~~
+
+
+
+~~~~ {.haskell}
+      apF  ::   F (a -> b) ->  (F a -> F b)
+fmapG(apF) :: G(F(a -> b)) -> G(F a -> F b)
+~~~~
+
+~~~~ {.haskell}
+ apG :: G ( x  ->  y )  ->  G  x   ->  G  y
+ apG :: G (F a -> F b)  ->  G(F a) ->  G(F b)
+~~~~
+
+
+# Składanie idiomów
+
+Mamy:
+
+~~~~ {.haskell}
+apF :: F (a -> b) -> F a -> F b
+apG :: G (a -> b) -> G a -> G b
+~~~~
+
+~~~~ {.haskell}
+fmapG(apF) :: G(F(a -> b)) -> G(F a -> F b)
+       apG ::                G (F a -> F b)  ->  G(F a) ->  G(F b)
+
+~~~~
+
+potrzebujemy (<*>) dla `G :. F`
+
+~~~~ {.haskell}
+apGF             :: G(F(a -> b)) -> G(F a) -> G(F b)
+apG . fmapG(apF) :: G(F(a -> b)) -> G(F a) ->  G(F b)
+~~~~
+
+
+# Składanie idiomów
+
 ~~~~ {.haskell}
 -- g :: * -> *,  f :: * -> * => g :. f :: * -> *
 newtype (g :. f) a = O { unO :: (g (f a)) }

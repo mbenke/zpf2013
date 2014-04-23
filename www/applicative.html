@@ -415,6 +415,47 @@ gfmap fun a <span class="fu">=</span> mapG (mapF fun) a <span class="kw">where</
 <h1 id="składanie-idiomów">Składanie idiomów</h1>
 <p>Składanie monad jest trudne (i nie zawsze możliwe).</p>
 <p>Składanie idiomów jest łatwe (no, prawie)</p>
+<p>Mamy:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apF ::</span> <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b
+<span class="ot">apG ::</span> <span class="dt">G</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">G</span> a <span class="ot">-&gt;</span> <span class="dt">G</span> b</code></pre>
+<p>potrzebujemy (&lt;*&gt;) dla <code>G :. F</code></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apGF ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> b)</code></pre>
+<h1 id="składanie-idiomów-1">Składanie idiomów</h1>
+<p>Mamy:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apF ::</span> <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b
+<span class="ot">apG ::</span> <span class="dt">G</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">G</span> a <span class="ot">-&gt;</span> <span class="dt">G</span> b</code></pre>
+<p>potrzebujemy (&lt;*&gt;) dla <code>G :. F</code></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apGF ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> b)</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">      apF  ::</span>   <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span>  (<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)
+fmapG(apF)<span class="ot"> ::</span>   <span class="fu">?</span></code></pre>
+<h1 id="składanie-idiomów-2">Składanie idiomów</h1>
+<p>Mamy:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apF ::</span> <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b
+<span class="ot">apG ::</span> <span class="dt">G</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">G</span> a <span class="ot">-&gt;</span> <span class="dt">G</span> b</code></pre>
+<p>potrzebujemy (&lt;*&gt;) dla <code>G :. F</code></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apGF ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> b)</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">      apF  ::</span>   <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span>  (<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)
+fmapG(apF)<span class="ot"> ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)</code></pre>
+<h1 id="składanie-idiomów-3">Składanie idiomów</h1>
+<p>Mamy:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apF ::</span> <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b
+<span class="ot">apG ::</span> <span class="dt">G</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">G</span> a <span class="ot">-&gt;</span> <span class="dt">G</span> b</code></pre>
+<p>potrzebujemy (&lt;*&gt;) dla <code>G :. F</code></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apGF ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> b)</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">      apF  ::</span>   <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span>  (<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)
+fmapG(apF)<span class="ot"> ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot"> apG ::</span> <span class="dt">G</span> ( x  <span class="ot">-&gt;</span>  y )  <span class="ot">-&gt;</span>  <span class="dt">G</span>  x   <span class="ot">-&gt;</span>  <span class="dt">G</span>  y
+<span class="ot"> apG ::</span> <span class="dt">G</span> (<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)  <span class="ot">-&gt;</span>  <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span>  <span class="dt">G</span>(<span class="dt">F</span> b)</code></pre>
+<h1 id="składanie-idiomów-4">Składanie idiomów</h1>
+<p>Mamy:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apF ::</span> <span class="dt">F</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b
+<span class="ot">apG ::</span> <span class="dt">G</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">G</span> a <span class="ot">-&gt;</span> <span class="dt">G</span> b</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">fmapG(apF)<span class="ot"> ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)
+<span class="ot">       apG ::</span>                <span class="dt">G</span> (<span class="dt">F</span> a <span class="ot">-&gt;</span> <span class="dt">F</span> b)  <span class="ot">-&gt;</span>  <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span>  <span class="dt">G</span>(<span class="dt">F</span> b)</code></pre>
+<p>potrzebujemy (&lt;*&gt;) dla <code>G :. F</code></p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">apGF             ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> b)
+apG <span class="fu">.</span> fmapG(apF)<span class="ot"> ::</span> <span class="dt">G</span>(<span class="dt">F</span>(a <span class="ot">-&gt;</span> b)) <span class="ot">-&gt;</span> <span class="dt">G</span>(<span class="dt">F</span> a) <span class="ot">-&gt;</span>  <span class="dt">G</span>(<span class="dt">F</span> b)</code></pre>
+<h1 id="składanie-idiomów-5">Składanie idiomów</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- g :: * -&gt; *,  f :: * -&gt; * =&gt; g :. f :: * -&gt; *</span>
 <span class="kw">newtype</span> (g <span class="fu">:.</span> f) a <span class="fu">=</span> <span class="dt">O</span> {<span class="ot"> unO ::</span> (g (f a)) }
 
