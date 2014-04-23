@@ -482,6 +482,8 @@ newtype Accy o a = Acc{acc::o}
 instance Monoid o => Applicative (Accy o) where
   pure _ = Acc mempty
   Acc o1 <*> Acc o2 = Acc (o1 <> o2)
+  -- o1 :: Accy o (a->b)  ~ o 
+  -- o2 :: Accy o a       ~ o
 ~~~~
 
 nie jest monadyczne, bo jak zdefiniować

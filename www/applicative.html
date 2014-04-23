@@ -329,7 +329,9 @@ False</code></pre>
 
 <span class="kw">instance</span> <span class="dt">Monoid</span> o <span class="ot">=&gt;</span> <span class="dt">Applicative</span> (<span class="dt">Accy</span> o) <span class="kw">where</span>
   pure _ <span class="fu">=</span> <span class="dt">Acc</span> mempty
-  <span class="dt">Acc</span> o1 <span class="fu">&lt;*&gt;</span> <span class="dt">Acc</span> o2 <span class="fu">=</span> <span class="dt">Acc</span> (o1 <span class="fu">&lt;&gt;</span> o2)</code></pre>
+  <span class="dt">Acc</span> o1 <span class="fu">&lt;*&gt;</span> <span class="dt">Acc</span> o2 <span class="fu">=</span> <span class="dt">Acc</span> (o1 <span class="fu">&lt;&gt;</span> o2)
+  <span class="co">-- o1 :: Accy o (a-&gt;b)  ~ o </span>
+  <span class="co">-- o2 :: Accy o a       ~ o</span></code></pre>
 <p>nie jest monadyczne, bo jak zdefiniować</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(&gt;&gt;=) ::</span> <span class="dt">Accy</span> o a <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span><span class="dt">Accy</span> o b) <span class="ot">-&gt;</span> <span class="dt">Accy</span> o b</code></pre>
 <h1 id="akumulowanie-błędów">Akumulowanie błędów</h1>
