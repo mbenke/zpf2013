@@ -311,7 +311,7 @@ False</code></pre>
 
 <span class="ot">(&lt;&gt;) ::</span> <span class="dt">Monoid</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a
 (<span class="fu">&lt;&gt;</span>) <span class="fu">=</span> mappend</code></pre>
-<p>Monoid jest w pewnym sensie uogólnieniem list:</p>
+<p>Kanonicznym przykładem Monoid są listy:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monoid</span> [] <span class="kw">where</span>
   mempty <span class="fu">=</span> []
   mappend <span class="fu">=</span> (<span class="fu">++</span>)</code></pre>

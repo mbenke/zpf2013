@@ -453,7 +453,7 @@ class Monoid a where
 (<>) = mappend
 ~~~~
 
-Monoid jest w pewnym sensie uogólnieniem list:
+Kanonicznym przykładem Monoid są listy:
 
 ~~~~ {.haskell}
 instance Monoid [] where
