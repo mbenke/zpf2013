@@ -221,6 +221,8 @@ Zauważmy, że ciągle odłogiem leży "pół rdzenia".
 # Threadscope
 
 * Narzędzie do analizy wykonania programu równoległego
+* `ghc -eventlog`
+* wykonanie produkuje plik `name.eventlog`
 
 ~~~~
 $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -ls

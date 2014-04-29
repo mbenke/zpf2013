@@ -176,6 +176,8 @@ $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
 <h1 id="threadscope">Threadscope</h1>
 <ul>
 <li>Narzędzie do analizy wykonania programu równoległego</li>
+<li><code>ghc -eventlog</code></li>
+<li>wykonanie produkuje plik <code>name.eventlog</code></li>
 </ul>
 <pre><code>$ ./sudoku2 sudoku17.1000.txt +RTS -N2 -ls
 $ threadscope sudoku2.eventlog &amp;
