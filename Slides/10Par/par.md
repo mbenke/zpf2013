@@ -17,6 +17,14 @@ physical processors.
 
 --- Simon Marlow, *Parallel and Concurrent Programming in Haskell*.
 
+# Równoległość w Haskellu
+
+* Programy równoległe są *deterministyczne*
+* Ten sam czysty program da tę samą odpowiedź na 1 i na N procesorów
+* Można uruchamiać na 1 procesorze
+* Nie ma ryzyka zakleszczenia czy wyścigu.
+* Nie ma problemów komunikacji i synchronizacji między wątkami.
+
 # Sudoku
 
 Przykład z dużą ilościa obliczeń: rozwiązywanie Sudoku
@@ -225,6 +233,8 @@ $ ~/.cabal/bin/threadscope sudoku2.eventlog &
 ![](sudoku2.png "sudoku2.eventlog")
 
 # Dynamiczny podział pracy
+
+Parallel map: process list elements in parallel
 
 ~~~~ {.haskell}
 parMap :: (a -> b) -> [a] -> Eval [b]
