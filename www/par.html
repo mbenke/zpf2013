@@ -4,7 +4,8 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
-  <title></title>
+  <meta name="author" content="Marcin Benke" />
+  <title>Advanced functional programming</title>
   <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
@@ -27,22 +28,28 @@ code > span.er { color: #ff0000; font-weight: bold; }
   </style>
 </head>
 <body>
-<h1 id="równoległość-a-współbieżność">Równoległość a współbieżność</h1>
+<div id="header">
+<h1 class="title">Advanced functional programming</h1>
+<h2 class="author">Marcin Benke</h2>
+<h3 class="date">Parallelism and Concurrency</h3>
+</div>
+<h1 id="parallelism-vs-concurrency">Parallelism vs concurrency</h1>
 <p>A <em>parallel</em> program is one that uses a multiplicity of computational hardware (e.g. multiple processor cores) in order to perform computation more quickly. Different parts of the computation are delegated to different processors that execute at the same time (in parallel), so that results may be delivered earlier than if the computation had been performed sequentially.</p>
 <p>In contrast, <em>concurrency</em> is a program-structuring technique in which there are multiple threads of control. Notionally the threads of control execute &quot;at the same time&quot;; that is, the user sees their effects interleaved. Whether they actually execute at the same time or not is an implementation detail; a concurrent program can execute on a single processor through interleaved execution, or on multiple physical processors.</p>
-<p>--- Simon Marlow, <em>Parallel and Concurrent Programming in Haskell</em>.</p>
-<h1 id="równoległość-w-haskellu">Równoległość w Haskellu</h1>
+<p>--- <a href="http://chimera.labs.oreilly.com/books/1230000000929">Simon Marlow, <em>Parallel and Concurrent Programming in Haskell</em></a></p>
+<p>(recommended reading, free to read online)</p>
+<h1 id="haskell-parallelism">Haskell parallelism</h1>
 <ul>
-<li>Programy równoległe są <em>deterministyczne</em></li>
-<li>Ten sam czysty program da tę samą odpowiedź na 1 i na N procesorów</li>
-<li>Można uruchamiać na 1 procesorze</li>
-<li>Nie ma ryzyka zakleszczenia czy wyścigu.</li>
-<li>Nie ma problemów komunikacji i synchronizacji między wątkami.</li>
+<li>Parallel programs in Haskell are <em>deterministic</em></li>
+<li>The same pure program gives the same answer on 1 and N cores</li>
+<li>Programs can be debugged on 1 core</li>
+<li>No risk of deadlock or race conditions</li>
+<li>No need to worry about thread communication and synchronisation.</li>
 </ul>
 <h1 id="sudoku">Sudoku</h1>
-<p>Przykład z dużą ilościa obliczeń: rozwiązywanie Sudoku</p>
-<p>Każda linia pliku wejściowego zawiera instancję problemu.</p>
-<p>Program sekwencyjny:</p>
+<p>An example with lots of computation: solving Sudoku</p>
+<p>Every line of input contains an instance of the problem</p>
+<p>Sequential program:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
     [f] <span class="ot">&lt;-</span> getArgs
     grids <span class="ot">&lt;-</span> fmap lines <span class="fu">$</span> readFile f
@@ -55,8 +62,8 @@ $ ./sudoku1 sudoku17.1000.txt +RTS -s
   Total   time    2.53s  (  2.56s elapsed)
   Alloc rate    973,110,877 bytes per MUT second
   Productivity  96.0% of total user, 94.9% of total elapsed</code></pre>
-<h1 id="wiele-procesorów">Wiele procesorów?</h1>
-<p>Poznajcie Azora: 64 rdzenie, 64GB pamięci</p>
+<h1 id="multicore">Multicore?</h1>
+<p>Meet Azor: 64 cores, 64GB mem</p>
 <pre><code>$ ghc -O2 -threaded --make sudoku1.hs
 $ ./sudoku1 sudoku17.1000.txt +RTS -s
   TASKS: 3 (1 bound, 2 peak workers (2 total), using -N1)
@@ -70,17 +77,17 @@ $ ./sudoku1 sudoku17.1000.txt +RTS -s
 
   Total   time   16.84s  (  4.09s elapsed)
   Productivity  51.8% of total user, 213.1% of total elapsed</code></pre>
-<p>Program działa wolniej: niepotrzebnie uruchamiamy N-1 dodatkowych wątków, które tylko przeszkadzają.</p>
-<h1 id="monada-eval-----strategie-obliczeń">Monada <code>Eval</code> --- strategie obliczeń</h1>
+<p>Our program works slower - we unnecessarily start N-1 additional threads that only get in the way.</p>
+<h1 id="the-eval-monad---computation-strategies">The <code>Eval</code> monad - computation strategies</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Control.Parallel.Strategies</span>
 <span class="kw">data</span> <span class="dt">Eval</span> a
 <span class="kw">instance</span> <span class="dt">Monad</span> <span class="dt">Eval</span>
 
-<span class="ot">runEval ::</span> <span class="dt">Eval</span> a
-<span class="ot">rseq ::</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> a  <span class="co">-- &quot;w tym wątku&quot;</span>
-<span class="ot">rpar ::</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> a  <span class="co">--  &quot;w nowym wątku&quot;</span></code></pre>
-<p>Wywołanie leniwej funkcji w nowym wątku ma mało sensu</p>
-<p>Musimy sterować ilością obliczeń</p>
+<span class="ot">runEval ::</span> <span class="dt">Eval</span> a <span class="ot">-&gt;</span> a
+<span class="ot">rseq ::</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> a  <span class="co">-- &quot;in this thread&quot;</span>
+<span class="ot">rpar ::</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> a  <span class="co">--  &quot;in a new thread&quot;</span></code></pre>
+<p>Calling a lazy function in a new thread has not much sense (why?)</p>
+<p>We need to control the evaluation somehow.</p>
 <h1 id="deepseq-friends">deepseq &amp; friends</h1>
 <p>deepseq: fully evaluates the first argument, before returning the second.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">seq<span class="ot"> ::</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> b
@@ -105,14 +112,14 @@ force x <span class="fu">=</span> deepseq x x
 <span class="co">-- when the resultant IO action is executed.</span>
 <span class="ot">evaluate ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a</code></pre>
 <h1 id="deepseq-friends-1">deepseq &amp; friends</h1>
-<p><code>seq</code> oblicza wyrażenie ``płytko'' (tylko korzeń drzewa)</p>
-<p><code>deepseq</code> oblicza głęboko (całe drzewo a do liści)</p>
+<p><code>seq</code> forces ``shallow'' evaluation (just the root)</p>
+<p><code>deepseq</code> forces the whole tree up to the leaves.</p>
 <pre><code>&gt; let x = [undefined] :: [Int] in x `seq` length x
 1
 
 &gt; let x = [undefined] :: [Int] in x `deepseq` length x
 *** Exception: Prelude.undefined</code></pre>
-<h1 id="program-równoległy">Program równoległy</h1>
+<h1 id="a-parallel-program">A parallel program</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Control.Parallel.Strategies</span>  <span class="co">-- cabal install parallel</span>
 main <span class="fu">=</span> <span class="kw">do</span>
     [f] <span class="ot">&lt;-</span> getArgs
@@ -126,8 +133,8 @@ main <span class="fu">=</span> <span class="kw">do</span>
        rseq a
        rseq b
        return ()</code></pre>
-<p>Tworzymy tu dwa wątki, w GHC nazywane &quot;sparks&quot; (to są lekkie wątki, nie wątki systemowe).</p>
-<h1 id="wyniki">Wyniki</h1>
+<p>We create two light threads, in GHC called ``sparks'' (these are not OS threads).</p>
+<h1 id="results">Results</h1>
 <pre><code>$ ghc -O2 -rtsopts -threaded --make sudoku2.hs
 $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
 
@@ -136,7 +143,7 @@ $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
 
   Total   time    2.73s  (  1.77s elapsed)
   Productivity  91.1% of total user, 140.4% of total elapsed</code></pre>
-<p>To już lepiej, ale ciągle nie potrafimy wykorzystac maszyny:</p>
+<p>Better, but we are still unavble to use the whole power:</p>
 <pre><code>./sudoku2 sudoku17.1000.txt +RTS -N16 -s -RTS
 
   TASKS: 18 (1 bound, 17 peak workers (17 total), using -N16)
@@ -144,23 +151,24 @@ $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
 
   Total   time   15.12s  (  3.19s elapsed)
   Productivity  55.2% of total user, 261.7% of total elapsed</code></pre>
-<h1 id="iskry">Iskry</h1>
+<h1 id="sparks">Sparks</h1>
 <ul>
-<li><p>Nowa &quot;iskra&quot; jest tworzona prz kazdym użyciu <code>rpar</code></p></li>
-<li><p>Gdy tylko system ma jakąś wolną jednostkę (procesor, rdzeń, etc), przydzielamy mu iskrę z kolejki (to jest &quot;converted&quot;).</p></li>
-<li><p>Jedna jednostka zawsze zajęta przez główny wątek</p></li>
+<li><p>A new spark is created with each use of <code>rpar</code> (and put in the spark pool)</p></li>
+<li><p>Whenever the system has a free computational unit (processor, core), it allocates it a new spark from the pool (&quot;convert&quot;)</p></li>
+<li><p>Computational unit - Haskelll Execution Context (HEC)</p></li>
+<li><p>One unit always occupied by the main thread.</p></li>
 </ul>
-<p>Tworzenie iskier mioże się nie powieść z powodu</p>
+<p>Spark creation may fail due to</p>
 <ul>
-<li><p>przepełnienia kolejki (overflow)</p></li>
-<li><p>wyrażenie zostało już obliczone (dud)</p></li>
+<li><p>pool overflow</p></li>
+<li><p>expression in WHNF already (dud)</p></li>
 </ul>
-<h1 id="kolejka-iskier">Kolejka iskier</h1>
-<p>Iskry z kolejki mogą zostać</p>
+<h1 id="spark-pool">Spark pool</h1>
+<p>sparks in the pool may be</p>
 <ul>
-<li><p>&quot;skonwertowane&quot; (converted)</p></li>
-<li><p>obliczone poza kolejką (fizzle)</p></li>
-<li><p>odśmiecone (GC)</p></li>
+<li><p>&quot;converted&quot; (allocated a HEC)</p></li>
+<li><p>evaluated out of order (fizzle)</p></li>
+<li><p>garbage collected (GC)</p></li>
 </ul>
 <h1 id="section"></h1>
 <div class="figure">
@@ -172,12 +180,12 @@ $ ./sudoku2 sudoku17.1000.txt +RTS -N2 -s -RTS
   Total   time    2.73s  (  1.77s elapsed)
 
   Productivity  91.1% of total user, 140.4% of total elapsed</code></pre>
-<p>Zauważmy, że ciągle odłogiem leży &quot;pół rdzenia&quot;.</p>
+<p>Productivity better, but still far from ideal.</p>
 <h1 id="threadscope">Threadscope</h1>
 <ul>
-<li>Narzędzie do analizy wykonania programu równoległego</li>
+<li>A tool to analyse threaded program execution</li>
 <li><code>ghc -eventlog</code></li>
-<li>wykonanie produkuje plik <code>name.eventlog</code></li>
+<li>executing program <code>prog' yields</code>prog.eventlog`</li>
 </ul>
 <pre><code>$ ./sudoku2 sudoku17.1000.txt +RTS -N2 -ls
 $ threadscope sudoku2.eventlog &amp;
@@ -186,7 +194,7 @@ $ ~/.cabal/bin/threadscope sudoku2.eventlog &amp;</code></pre>
 <div class="figure">
 <img src="sudoku2.png" title="sudoku2.eventlog" />
 </div>
-<h1 id="dynamiczny-podział-pracy">Dynamiczny podział pracy</h1>
+<h1 id="dynamic-work-allocation">Dynamic work allocation</h1>
 <p>Parallel map: process list elements in parallel</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parMap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Eval</span> [b]
 parMap f [] <span class="fu">=</span> return []
@@ -194,16 +202,16 @@ parMap f (a<span class="fu">:</span>as) <span class="fu">=</span> <span class="k
    b <span class="ot">&lt;-</span> rpar (f a)
    bs <span class="ot">&lt;-</span> parMap f as
    return (b<span class="fu">:</span>bs)</code></pre>
-<p>Obliczenie:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">    evaluate <span class="fu">$</span> force <span class="fu">$</span> runEval <span class="fu">$</span> parMap solve grids</code></pre>
-<h1 id="parmap---wyniki">parMap - wyniki</h1>
+<p>Evaluation:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">    runEval (parMap solve grids) <span class="ot">`deepseq`</span> return ()</code></pre>
+<h1 id="parmap---results">parMap - results</h1>
 <pre><code>$ ./sudoku3b sudoku17.1000.txt +RTS -N2 -s -RTS
   TASKS: 4 (1 bound, 3 peak workers (3 total), using -N2)
   SPARKS: 1000 (1000 converted, 0 overflowed, 0 dud, 0 GC&#39;d, 0 fizzled)
 
   Total   time    2.84s  (  1.49s elapsed)
   Productivity  88.9% of total user, 169.6% of total elapsed</code></pre>
-<p>Lepsza produktywność, poza tym łatwiej skalować na więcej rdzeni:</p>
+<p>Better productivity, easier to scale:</p>
 <pre><code>sudoku2b 
 -N8: Productivity  71.0% of total user, 169.2% of total elapsed
 N16: Productivity  53.5% of total user, 252.6% of total elapsed
@@ -221,7 +229,7 @@ N32: Productivity  43.5% of total user, 1112.6% of total elapsed</code></pre>
 <img src="sudoku3-N8.png" title="sudoku3-N8.eventlog" />
 </div>
 <h1 id="strategie">Strategie</h1>
-<p>Dodatkowy poziom abstrakcji zbudowany na monadzie <code>Eval</code></p>
+<p>Additional abstraction layer built upon the <code>Eval</code> monad</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">Strategy</span> a <span class="fu">=</span> a <span class="ot">-&gt;</span> <span class="dt">Eval</span> 
 <span class="ot">rseq ::</span> <span class="dt">Strategy</span> a
 <span class="ot">rpar ::</span> <span class="dt">Strategy</span> a
@@ -232,8 +240,8 @@ rdeepseq <span class="fu">=</span> rseq(deep x)
 
 <span class="ot">using ::</span> a <span class="ot">-&gt;</span> <span class="dt">Strategy</span> a <span class="ot">-&gt;</span> a
 x <span class="ot">`using`</span> s <span class="fu">=</span> runEval (s x)</code></pre>
-<p>Zaletą takiego podejścia jest to, że &quot;using s&quot; można usuwać (prawie) bez zmian semantyki (program może się najwyżej stać &quot;bardziej zdefiniowany&quot;)</p>
-<h1 id="równoległe-przetwarzenie-listy">Równoległe przetwarzenie listy</h1>
+<p>The advantage is that <code>using s</code> can be removed (almost) without changing semantics (at worst, the program will be ``more defined'')</p>
+<h1 id="parallel-list-processing">Parallel list processing</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">parMap f xs <span class="fu">=</span> map f xs <span class="ot">`using`</span> parList rseq
 
 <span class="co">-- Control.Parallel.Strategies</span>
@@ -243,8 +251,8 @@ parList strat (x<span class="fu">:</span>xs) <span class="fu">=</span> <span cla
     x&#39; <span class="ot">&lt;-</span> rpar (x <span class="ot">`using`</span> strat)
     xs&#39; <span class="ot">&lt;-</span> parList strat xs
     return (x&#39;<span class="fu">:</span>xs)</code></pre>
-<h1 id="uwaga">Uwaga</h1>
-<p>Iskry są bardzo tanie, ale mimo wszystko nie należy tworzyć ich zbyt wiele</p>
+<h1 id="cautionary-note">Cautionary note</h1>
+<p>Although the sparks are really cheap, one should not create too many of them</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">parFib n <span class="fu">|</span> n <span class="fu">&lt;</span> <span class="dv">2</span> <span class="fu">=</span> n
 parFib n <span class="fu">=</span> p <span class="ot">`par`</span> q <span class="ot">`pseq`</span> (p <span class="fu">+</span> q)
     <span class="kw">where</span>
@@ -265,11 +273,11 @@ N60:
                     140401503 GC&#39;d, 47173155 fizzled)
   Total   time   65.95s  (  1.28s elapsed)
   Productivity  47.8% of total user, 2461.5% of total elapsed</code></pre>
-<h1 id="życie-iskry">Życie iskry</h1>
+<h1 id="spark-lifecycle">Spark lifecycle</h1>
 <div class="figure">
 <img src="spark-lifecycle800.png" title="Life cycle of a spark" alt="spark lifecycle" /><p class="caption">spark lifecycle</p>
 </div>
-<h1 id="lepiej">Lepiej</h1>
+<h1 id="better">Better</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">cutoff ::</span> <span class="dt">Int</span>
 cutoff <span class="fu">=</span> <span class="dv">20</span>
 
@@ -293,11 +301,12 @@ fib n <span class="fu">=</span> fib (n <span class="fu">-</span> <span class="dv
                   156448 GC&#39;d, 652908 fizzled)
   Total   time   13.59s  (  0.28s elapsed)
   Productivity  97.6% of total user, 4746.9% of total elapsed</code></pre>
-<h1 id="ćwiczenie">Ćwiczenie</h1>
+<h1 id="exercise">Exercise</h1>
 <ul>
-<li><p>Przepisz powyższy program uzywając monady <code>Eval</code></p></li>
-<li><p>Sprawdź jakie wartości cutoff będą dobre dla róznych stopni równoległosci N</p></li>
-<li><p>Wypróbuj inne strategie obliczeń</p></li>
+<li><p>Rewrite parFib using the <code>Eval</code> monad</p></li>
+<li><p>Ditto using Strategies</p></li>
+<li><p>Check what cutoff values are best for different parallelism factors</p></li>
+<li><p>Try out other strategies</p></li>
 </ul>
 <h1 id="threadscope-1">Threadscope</h1>
 <pre><code>$ ghc -O2 -threaded -eventlog --make badfib.hs
@@ -313,11 +322,11 @@ $ ~/.cabal/bin/threadscope parfib.eventlog</code></pre>
 <div class="figure">
 <img src="parfib.png" title="Threadscope" alt="threadscope:badfib" /><p class="caption">threadscope:badfib</p>
 </div>
-<h1 id="ćwiczenie-1">Ćwiczenie</h1>
-<p>Napisz funkcję rozmieszczającą n hetmanów na szachownicy n*n</p>
+<h1 id="exercise-1">Exercise</h1>
+<p>Write a function putting n queens on n*n chessboard</p>
 <ul>
-<li><p>sekwencyjnie</p></li>
-<li><p>równolegle</p></li>
+<li><p>sequential</p></li>
+<li><p>parallel</p></li>
 </ul>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">PartialSolution</span> <span class="fu">=</span> [<span class="dt">Int</span>]
 <span class="kw">type</span> <span class="dt">Solution</span> <span class="fu">=</span> <span class="dt">PartialSolution</span>
@@ -333,117 +342,7 @@ addQueen n s <span class="fu">=</span> [x <span class="fu">:</span> s <span clas
 safe x [] n <span class="fu">=</span> <span class="dt">True</span>
 safe x (c <span class="fu">:</span> y) n <span class="fu">=</span> x <span class="fu">/=</span> c <span class="fu">&amp;&amp;</span> x <span class="fu">/=</span> c <span class="fu">+</span> n 
        <span class="fu">&amp;&amp;</span> x <span class="fu">/=</span> c <span class="fu">-</span> n <span class="fu">&amp;&amp;</span> safe x y (n <span class="fu">+</span> <span class="dv">1</span>)</code></pre>
-<h1 id="współbieżność">Współbieżność</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Control.Concurrent</span>
-<span class="co">-- forkIO :: IO() -&gt; IO ThreadId</span>
-<span class="kw">import </span><span class="dt">Control.Monad</span>
-<span class="kw">import </span><span class="dt">System.IO</span>
-
-main <span class="fu">=</span> <span class="kw">do</span>
-  hSetBuffering stdout <span class="dt">NoBuffering</span>
-  forkIO <span class="fu">$</span> forever <span class="fu">$</span> putChar <span class="ch">&#39;A&#39;</span>
-  forkIO <span class="fu">$</span> forever <span class="fu">$</span> putChar <span class="ch">&#39;B&#39;</span>
-  threadDelay (<span class="dv">10</span><span class="fu">^</span><span class="dv">6</span>)</code></pre>
-<h1 id="synchronizacja-mvar">Synchronizacja: <code>MVar</code></h1>
-<p>Jednoelementowy bufor/semafor:</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">MVar</span> a
-<span class="ot">newMVar  ::</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">MVar</span> a)
-<span class="ot">takeMVar ::</span>  <span class="dt">MVar</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a 
-<span class="ot">putMVar  ::</span> <span class="dt">MVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
-<p><code>stdout</code> jest chronione MVar, dlatego w poprzednim przykładzie A i B rozkładają się w miarę równo.</p>
-<h1 id="asynchroniczne-io">Asynchroniczne I/O</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">GetURL</span>(getURL)
-<span class="kw">import </span><span class="dt">Control.Concurrent</span>
-
-main <span class="fu">=</span> <span class="kw">do</span>
-  m1 <span class="ot">&lt;-</span> newEmptyMVar
-  m2 <span class="ot">&lt;-</span> newEmptyMVar  
-  forkIO <span class="fu">$</span> <span class="kw">do</span> 
-    r <span class="ot">&lt;-</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Shovel&quot;</span>
-    putMVar m1 r
-    
-  forkIO <span class="fu">$</span> <span class="kw">do</span> 
-    r <span class="ot">&lt;-</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Spade&quot;</span>
-    putMVar m2 r
-
-  r1 <span class="ot">&lt;-</span> takeMVar m1
-  print <span class="st">&quot;1 DONE&quot;</span>  
-  r2 <span class="ot">&lt;-</span> takeMVar m2
-  print <span class="st">&quot;2 DONE&quot;</span></code></pre>
-<h1 id="ładniej">Ładniej</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Async</span> a <span class="fu">=</span> <span class="dt">Async</span> (<span class="dt">MVar</span> a)
-
-<span class="ot">async ::</span> <span class="dt">IO</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Async</span> a)
-async action <span class="fu">=</span> <span class="kw">do</span>
-   var <span class="ot">&lt;-</span> newEmptyMVar
-   forkIO (action <span class="fu">&gt;&gt;=</span> putMVar var)
-   return (<span class="dt">Async</span> var)
-
-<span class="ot">wait ::</span> <span class="dt">Async</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a
-wait (<span class="dt">Async</span> var) <span class="fu">=</span> readMVar var
-
-main <span class="fu">=</span> <span class="kw">do</span>
-  m1 <span class="ot">&lt;-</span> async <span class="fu">$</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Shovel&quot;</span>
-  m2 <span class="ot">&lt;-</span> async <span class="fu">$</span> getURL <span class="st">&quot;http://www.wikipedia.com/wiki/Spade&quot;</span>
-  wait m1
-  print <span class="st">&quot;1 DONE&quot;</span>  
-  wait m2
-  print <span class="st">&quot;2 DONE&quot;</span></code></pre>
-<h1 id="równoległość-danych-monada-par">Równoległość danych: monada Par</h1>
-<p>Element pośredni pomiędzy <code>Eval</code> a <code>Concurrent</code>: jawne tworzenie wątków, ale z zachowaniem determinizmu</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Par</span> a
-<span class="kw">instance</span> <span class="dt">Functor</span> <span class="dt">Par</span>
-<span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">Par</span>
-<span class="kw">instance</span> <span class="dt">Monad</span> <span class="dt">Par</span>
-
-<span class="ot">runPar ::</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> a
-<span class="ot">fork ::</span> <span class="dt">Par</span> () <span class="ot">-&gt;</span> <span class="dt">Par</span> ()</code></pre>
-<h1 id="komunikacja-----ivar">Komunikacja --- IVar</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">IVar</span> a
-<span class="ot">new ::</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
-<span class="ot">put ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> ()
-<span class="ot">get ::</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> a</code></pre>
-<ul>
-<li><p><code>new</code> tworzy nową , pustą zmienną</p></li>
-<li><p><code>put</code> wypełnia ją wartością (mozna tylko raz)</p></li>
-<li><p><code>get</code> pobiera wartość, ewentualnie czekając</p></li>
-</ul>
-<h1 id="sudoku-z-użyciem-par">Sudoku z użyciem <code>Par</code></h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
-    [f] <span class="ot">&lt;-</span> getArgs
-    grids <span class="ot">&lt;-</span> fmap lines <span class="fu">$</span> readFile f
-
-    <span class="kw">let</span> (as,bs) <span class="fu">=</span> splitAt (length grids <span class="ot">`div`</span> <span class="dv">2</span>) grids
-
-    print <span class="fu">$</span> length <span class="fu">$</span> filter isJust <span class="fu">$</span> runPar <span class="fu">$</span> <span class="kw">do</span>
-       i1 <span class="ot">&lt;-</span> new
-       i2 <span class="ot">&lt;-</span> new
-       fork <span class="fu">$</span> put i1 (map solve as)
-       fork <span class="fu">$</span> put i2 (map solve bs)
-       as&#39; <span class="ot">&lt;-</span> get i1
-       bs&#39; <span class="ot">&lt;-</span> get i2
-       return (as&#39; <span class="fu">++</span> bs&#39;)
-
-<span class="co">--   Productivity  96.3% of total user, 141.2% of total elapsed</span></code></pre>
-<h1 id="parmap">parMap</h1>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">spawn ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
-spawn p <span class="fu">=</span> <span class="kw">do</span>
-      i <span class="ot">&lt;-</span> new
-      fork (p <span class="fu">&gt;&gt;=</span> put i)
-      return i
-
-parMapM f as <span class="fu">=</span> <span class="kw">do</span>
-    ibs <span class="ot">&lt;-</span> mapM (spawn <span class="fu">.</span> f) as
-    mapM get ibs
-
-<span class="co">-- Control.Monad.Par.parMap</span>
-main <span class="fu">=</span> <span class="kw">do</span>
-    [f] <span class="ot">&lt;-</span> getArgs
-    grids <span class="ot">&lt;-</span> fmap lines <span class="fu">$</span> readFile f
-    print (length (filter isJust (runPar <span class="fu">$</span> parMap solve grids)))
-
-<span class="co">-- Productivity  95.8% of total user, 173.1% of total elapsed</span></code></pre>
-<h1 id="koniec">Koniec</h1>
+<h1 id="the-end">The end</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
 </body>
 </html>
