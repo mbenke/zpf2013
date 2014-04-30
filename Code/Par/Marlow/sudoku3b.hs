@@ -9,8 +9,7 @@ main :: IO ()
 main = do
     [f] <- getArgs
     grids <- fmap lines $ readFile f
-    evaluate $ force $ runEval $ parMap solve grids
-    return ()
+    runEval (parMap solve grids) `deepseq` return ()
 
 parMap :: (a -> b) -> [a] -> Eval [b]
 parMap f [] = return []
