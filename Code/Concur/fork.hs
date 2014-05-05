@@ -6,4 +6,4 @@ main = do
   hSetBuffering stdout NoBuffering
   forkIO $ forever $ putChar 'A'
   forkIO $ forever $ putChar 'B'
-  threadDelay (100)
+  threadDelay (700)
