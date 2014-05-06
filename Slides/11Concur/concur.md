@@ -530,10 +530,9 @@ writeTChan :: TChan a -> a -> STM ()
 ~~~~
 
 
-# Równoległość przepływu danych: monada Par
+# Dataflow parallelism: the `Par` monad
 
-Element pośredni pomiędzy `Eval` a `Concurrent`: jawne tworzenie wątków, 
-ale z zachowaniem determinizmu
+Between  `Eval` and `Concurrent`: explicit thread creation but preserving determinism.
 
 ~~~~ {.haskell}
 newtype Par a
@@ -545,7 +544,11 @@ runPar :: Par a -> a
 fork :: Par () -> Par ()
 ~~~~
 
-# Komunikacja --- IVar
+`fork` executes its argument in parallel with the caller, but does not return anything
+
+we need communication
+
+# Communication --- IVar
 
 ~~~~ {.haskell}
 data IVar a
@@ -554,25 +557,66 @@ put :: NFData a => IVar a -> a -> Par ()
 get :: IVar a -> Par a
 ~~~~
 
-* `new` tworzy nową , pustą zmienną
+* `new` creates a new, empty var
 
-* `put` wypełnia ją wartością (mozna tylko raz)
+* `put` fills it with a value (allowed only once)
 
-* `get` pobiera wartość, ewentualnie czekając
+* `get` gets the value, waiting if necessary
 
-# Równoległość przepływu danych: monada Par
+# Example: Fibonacci
+
+~~~~ {.haskell}
+    runPar $ do
+      i <- new                          -- <1>
+      j <- new                          -- <1>
+      fork (put i (fib n))              -- <2>
+      fork (put j (fib m))              -- <2>
+      a <- get i                        -- <3>
+      b <- get j                        -- <3>
+      return (a+b)                      -- <4>
+~~~~
+
+1: create two new `IVar`s to hold the results
+
+2: fork two independent `Par` computations
+
+3: wait for the results
+
+```
+ ./parmonad 34 35 +RTS -N2
+24157817
+```
+
+# Caution
+
+There is nothing in the types to stop you from returning an `IVar` from
+`runPar` and passing it to another call of `runPar`.
+
+**This is a Very Bad Idea; don’t do it.**
+
+The implementation of the `Par` monad assumes
+that `IVars` are created and used within the same `runPar`, and
+breaking this assumption could lead to a runtime error, deadlock,
+or worse.
+
+The library could prevent you from doing this using qualified types
+in the same way that the `ST` monad prevents you from returning an
+`STRef` from `runST`.  This is planned for a future version.
+
+
+# Dataflow parallelism: the `Par` monad
  
-Program mozemy przedstawic jako sieć (graf) przepływu danych, 
-gdzie wierzchołki reprezentują operacje, a krawędzie zależnosci.
+A program can be represented as a dataflow network (graph) 
+where vertices represent operations, edges - dependencies.
 
 ![](dataflow-network.png "Dataflow network")
 
-w powyższym grafie `j` potrzebuje wyników `g` oraz `h`, te zaś potrzebują wyniku `f` natomiast sa od siebie niezależne.
+in the graph above, `j`  depends on results of `g` and `h`, 
+which in turn need the result of `f` but are independent of each other.
 
-Graf zaleznosci nie musi być statyczny; 
-może być budowany dynamicznie w zależności od potrzeb.
+The dependency graph need not be static, can be built dynamically
 
-# Kod
+# Code
 
 ~~~~ {.haskell}
 network :: IVar In -> Par Out
@@ -605,7 +649,7 @@ $ ./Par1
 (6,9)
 ```
 
-# Sudoku z użyciem `Par`
+# Sudoku using `Par`
 
 ~~~~ {.haskell}
 main = do
@@ -648,17 +692,17 @@ main = do
 -- Productivity  95.8% of total user, 173.1% of total elapsed
 ~~~~
 
-# Ćwiczenie: nqueens w róznych wariantach
+# Exercise: more `nqueens` variants
 
-Przerób rozwiązanie nqueens z poprzednich zajęć (z `Eval`) na użycie `Par`.
+Rewrite `nqueens` from last week (using `Eval`) to use `Par`
 
-Toż z `forkIO+MVar`
+Ditto with `forkIO+MVar`
 
-Uwaga na granularność!
+Careful with granularity!
 
 
 
-# Koniec
+# THE END
 
 ~~~~ {.haskell}
 

@@ -435,9 +435,9 @@ limitedWithdraw2 acc1 acc2 amt <span class="fu">=</span>
 <span class="ot">readTChan ::</span> <span class="dt">TChan</span> a <span class="ot">-&gt;</span> <span class="dt">STM</span> a
 <span class="ot">writeTChan ::</span> <span class="dt">TChan</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">STM</span> ()</code></pre>
 </div>
-<div id="równoległość-przepływu-danych-monada-par" class="slide section level1">
-<h1>Równoległość przepływu danych: monada Par</h1>
-<p>Element pośredni pomiędzy <code>Eval</code> a <code>Concurrent</code>: jawne tworzenie wątków, ale z zachowaniem determinizmu</p>
+<div id="dataflow-parallelism-the-par-monad" class="slide section level1">
+<h1>Dataflow parallelism: the <code>Par</code> monad</h1>
+<p>Between <code>Eval</code> and <code>Concurrent</code>: explicit thread creation but preserving determinism.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Par</span> a
 <span class="kw">instance</span> <span class="dt">Functor</span> <span class="dt">Par</span>
 <span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">Par</span>
@@ -445,30 +445,55 @@ limitedWithdraw2 acc1 acc2 amt <span class="fu">=</span>
 
 <span class="ot">runPar ::</span> <span class="dt">Par</span> a <span class="ot">-&gt;</span> a
 <span class="ot">fork ::</span> <span class="dt">Par</span> () <span class="ot">-&gt;</span> <span class="dt">Par</span> ()</code></pre>
+<p><code>fork</code> executes its argument in parallel with the caller, but does not return anything</p>
+<p>we need communication</p>
 </div>
-<div id="komunikacja-----ivar" class="slide section level1">
-<h1>Komunikacja --- IVar</h1>
+<div id="communication-----ivar" class="slide section level1">
+<h1>Communication --- IVar</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">IVar</span> a
 <span class="ot">new ::</span> <span class="dt">Par</span> (<span class="dt">IVar</span> a)
 <span class="ot">put ::</span> <span class="dt">NFData</span> a <span class="ot">=&gt;</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> ()
 <span class="ot">get ::</span> <span class="dt">IVar</span> a <span class="ot">-&gt;</span> <span class="dt">Par</span> a</code></pre>
 <ul>
-<li><p><code>new</code> tworzy nową , pustą zmienną</p></li>
-<li><p><code>put</code> wypełnia ją wartością (mozna tylko raz)</p></li>
-<li><p><code>get</code> pobiera wartość, ewentualnie czekając</p></li>
+<li><p><code>new</code> creates a new, empty var</p></li>
+<li><p><code>put</code> fills it with a value (allowed only once)</p></li>
+<li><p><code>get</code> gets the value, waiting if necessary</p></li>
 </ul>
 </div>
-<div id="równoległość-przepływu-danych-monada-par-1" class="slide section level1">
-<h1>Równoległość przepływu danych: monada Par</h1>
-<p>Program mozemy przedstawic jako sieć (graf) przepływu danych, gdzie wierzchołki reprezentują operacje, a krawędzie zależnosci.</p>
+<div id="example-fibonacci" class="slide section level1">
+<h1>Example: Fibonacci</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell">    runPar <span class="fu">$</span> <span class="kw">do</span>
+      i <span class="ot">&lt;-</span> new                          <span class="co">-- &lt;1&gt;</span>
+      j <span class="ot">&lt;-</span> new                          <span class="co">-- &lt;1&gt;</span>
+      fork (put i (fib n))              <span class="co">-- &lt;2&gt;</span>
+      fork (put j (fib m))              <span class="co">-- &lt;2&gt;</span>
+      a <span class="ot">&lt;-</span> get i                        <span class="co">-- &lt;3&gt;</span>
+      b <span class="ot">&lt;-</span> get j                        <span class="co">-- &lt;3&gt;</span>
+      return (a<span class="fu">+</span>b)                      <span class="co">-- &lt;4&gt;</span></code></pre>
+<p>1: create two new <code>IVar</code>s to hold the results</p>
+<p>2: fork two independent <code>Par</code> computations</p>
+<p>3: wait for the results</p>
+<pre><code> ./parmonad 34 35 +RTS -N2
+24157817</code></pre>
+</div>
+<div id="caution" class="slide section level1">
+<h1>Caution</h1>
+<p>There is nothing in the types to stop you from returning an <code>IVar</code> from <code>runPar</code> and passing it to another call of <code>runPar</code>.</p>
+<p><strong>This is a Very Bad Idea; don’t do it.</strong></p>
+<p>The implementation of the <code>Par</code> monad assumes that <code>IVars</code> are created and used within the same <code>runPar</code>, and breaking this assumption could lead to a runtime error, deadlock, or worse.</p>
+<p>The library could prevent you from doing this using qualified types in the same way that the <code>ST</code> monad prevents you from returning an <code>STRef</code> from <code>runST</code>. This is planned for a future version.</p>
+</div>
+<div id="dataflow-parallelism-the-par-monad-1" class="slide section level1">
+<h1>Dataflow parallelism: the <code>Par</code> monad</h1>
+<p>A program can be represented as a dataflow network (graph) where vertices represent operations, edges - dependencies.</p>
 <div class="figure">
 <img src="dataflow-network.png" title="Dataflow network" />
 </div>
-<p>w powyższym grafie <code>j</code> potrzebuje wyników <code>g</code> oraz <code>h</code>, te zaś potrzebują wyniku <code>f</code> natomiast sa od siebie niezależne.</p>
-<p>Graf zaleznosci nie musi być statyczny; może być budowany dynamicznie w zależności od potrzeb.</p>
+<p>in the graph above, <code>j</code> depends on results of <code>g</code> and <code>h</code>, which in turn need the result of <code>f</code> but are independent of each other.</p>
+<p>The dependency graph need not be static, can be built dynamically</p>
 </div>
-<div id="kod" class="slide section level1">
-<h1>Kod</h1>
+<div id="code" class="slide section level1">
+<h1>Code</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">network ::</span> <span class="dt">IVar</span> <span class="dt">In</span> <span class="ot">-&gt;</span> <span class="dt">Par</span> <span class="dt">Out</span>
 network inp <span class="fu">=</span> <span class="kw">do</span>
  [vf,vg,vh] <span class="ot">&lt;-</span> sequence [new,new,new]
@@ -494,8 +519,8 @@ main <span class="fu">=</span> print <span class="fu">$</span> runNetwork <span 
 <pre><code>$ ./Par1
 (6,9)</code></pre>
 </div>
-<div id="sudoku-z-użyciem-par" class="slide section level1">
-<h1>Sudoku z użyciem <code>Par</code></h1>
+<div id="sudoku-using-par" class="slide section level1">
+<h1>Sudoku using <code>Par</code></h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">main <span class="fu">=</span> <span class="kw">do</span>
     [f] <span class="ot">&lt;-</span> getArgs
     grids <span class="ot">&lt;-</span> fmap lines <span class="fu">$</span> readFile f
@@ -533,14 +558,14 @@ main <span class="fu">=</span> <span class="kw">do</span>
 
 <span class="co">-- Productivity  95.8% of total user, 173.1% of total elapsed</span></code></pre>
 </div>
-<div id="ćwiczenie-nqueens-w-róznych-wariantach" class="slide section level1">
-<h1>Ćwiczenie: nqueens w róznych wariantach</h1>
-<p>Przerób rozwiązanie nqueens z poprzednich zajęć (z <code>Eval</code>) na użycie <code>Par</code>.</p>
-<p>Toż z <code>forkIO+MVar</code></p>
-<p>Uwaga na granularność!</p>
+<div id="exercise-more-nqueens-variants" class="slide section level1">
+<h1>Exercise: more <code>nqueens</code> variants</h1>
+<p>Rewrite <code>nqueens</code> from last week (using <code>Eval</code>) to use <code>Par</code></p>
+<p>Ditto with <code>forkIO+MVar</code></p>
+<p>Careful with granularity!</p>
 </div>
-<div id="koniec" class="slide section level1">
-<h1>Koniec</h1>
+<div id="the-end" class="slide section level1">
+<h1>THE END</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
 </div>
 <div id="budowanie-abstrakcji-przy-użyciu-mvar----kanały" class="slide section level1">
