@@ -285,18 +285,18 @@ then { from.lock(); to.lock(); }
 else { to.lock(); from.lock(); }
 ```
 
-# Kłopoty z semaforami
+# Problems with locking
 
-* za mało semaforów
+* not enough locks
 
-* nie te semafory - połaczenie między semaforem, a danymi, 
+* wrong locks - the connection between a lock and data it protects is not always clear
 które chroni nie zawsze jest jasne
 
-* za duzo semaforów - zakleszczenie, zagłodzenie,...
+* too many locks - deadlock, starvation
 
-* semafory w złej kolejności
+* taking locks in a wrong order
 
-Potrzebne lepsze rozwiązanie
+Better solutions?
 
 # Software Transactional Memory
 
@@ -308,27 +308,25 @@ transfer from to amount = atomically $ do
 	 withdraw from amount 
 ```
 
-* Atomicity: wyniki `atomically` są widoczne dla innych wątków jako całość
+* Atomicity: results of `atomically` are visible to other threads as a whole
 
-* Isolation: w trakcie `atomically act`, na działanie `act` nie mają wpływu 
-  inne wątki
+* Isolation: during `atomically act`, no interferencs from other threads
 
 # GIL?
 
-Dwa problemy:
+Two problems
 
-* jeden już widzieliśmy: nie ma gwarancji izolacji
+* one we have seen alreadt: no isolation guarantee
 
-* zabijamy współbieżność (nie bez powodu nazwałem globalny semafor `gil`)
+* killing concurrency (I called the global lock `gil` on purpose)
 
-Pierwszy możemy rozwiązać przy pomocy systemu typów
+The first problem can be solved using types:
 
 ~~~~ {.haskell}
 atomically :: STM a -> IO a
 ~~~~
 
-przy czym w `STM` nie ma dostepu do bezpośrednio  do `IORef` 
-a tylko do zmiennych transakcyjnych:
+where `STM` has no direct access to `IORef`, only to transaction variables:
 
 ~~~~ {.haskell}
 data TVar
@@ -337,36 +335,37 @@ readTVar :: TVar a -> STM a
 writeTVar :: TVar a -> a -> STM ()
 ~~~~
 
-**Ćwiczenie:** rozwiń ten pomysł; wypróbuj jego przepustowość
+**Exercise:** develop this idea; check its throughput
 
-# Optymistyczna współbieżność
+# Optimistic concurrency
 
-* Pomysł z baz danych: `atomically` tworzy lokalny log, 
-* `writeTVar` pisze do logu, nie pisząc do wspólnej pamięci
-* `readTVar` sprawdza najpierw log, potem ew. czyta z pamięci, 
-  zapisując odczytaną wartość w logu.
-* na końcu próbujemy zatwierdzić transakcję:
-    * czytamy wszystkie zmienne przez nią czytane i porównujemy z logiem
-    * jeśli sie zgadza, zatwierdzamy: zapisujemy to co w logu
-    * wpp wycofujemy transakcję i próbujemy ją wykonac jeszcze raz (później)
+* An idea from databases: `atomically` writes a local log
+* `writeTVar` writes only to the log, not to shared memory.
+* `readTVar` checks the log first, if not found reads the memory, writing to the log.
+* eventually we attempt to commit the transaction:
+    * read all vars it reads, compare with the log
+    * if no discrepancies, commit - write from log to memory
+    * otherwise rollback and redo later
 
-Uwaga: system musi zapewnić atomowość zatwierdzania transakcji.
+Note: the RTS must ensure atomicity of commits
+
 
 
 # launchMissiles?
 
-Transakcja nie może miec innych efektów ubocznych niż STM
+Transactions can have no side effects other than STM
 
 ~~~~ {.haskell}
 atomically $ do 
     x <- readTVar xv
     y <- readTVar yv
-    if x>y then launchMissiles
-           else return ()
+    when (x>y) launchMissiles
 ~~~~
 
-''Optymistycznie'' przeczytane wartości x,y moga być nieprawdziwe, 
-lepiej nie odpalać rakiet...
+``optimistically'' read values of x,y need not be true
+
+better not to launch missiles...
+
 
 # STM
 
@@ -394,12 +393,17 @@ delay 0 = 0
 delay n = delay $! n-1
 ~~~~
 
-# Ćwiczenie
+```
+./stm1 +RTS -N2
+20
+```
 
-Zaimplementuj `withdraw`, `deposit` przy pomocy STM.
+# Exercise
+
+Implement `withdraw`, `deposit` using STM
 
 
-# Blokowanie: `retry`
+# Blocking: `retry`
 
 
 ~~~~ {.haskell}
@@ -413,11 +417,13 @@ limitedWithdraw acc amount = do
       else writeTVar acc (bal - amount) 
 ~~~~
 
-Gdy brak srodków zawieszamy transakcję i próbujemy później
+When not enough funds, stop the transaction and retry later.
 
-System wie jakie zmienne transakcja czyta i moze ją wznowic po zapisie do którejś z tych zmiennych (tu: `amount`)
+The system knows which variables are read and can retry 
+when one of them changes (here: `amount`).
 
-# Ładniej: `check`
+
+# Better: `check`
 
 ~~~~ {.haskell}
 limitedWithdraw :: Account -> Int -> STM ()
@@ -439,9 +445,40 @@ guard True      =  return ()
 guard False     =  mzero
 ~~~~
 
-# Wybór
+# Other uses of retry - window manager
 
-Pobierz z konta A, gdy brak środków, spróbuj konta B
+Marlow, p 181
+
+~~~~ {.haskell}
+renderThread :: Display -> UserFocus -> IO ()
+renderThread disp focus = do
+  wins <- atomically $ getWindows disp focus    -- <1>
+  loop wins                                     -- <2>
+ where
+  loop wins = do                                -- <3>
+    render wins                                 -- <4>
+    next <- atomically $ do
+               wins' <- getWindows disp focus   -- <5>
+               if (wins == wins')               -- <6>
+                   then retry                   -- <7>
+                   else return wins'            -- <8>
+    loop next
+~~~~
+
+1: read the current set of windows to display
+
+4: call render to display the
+current state and then enter a transaction to read the next
+state.
+
+7: If the states are the same, then there is no need to do anything, so we call `retry`
+
+8: If the states are different, then we return the new state, and the loop
+iterates with the new state
+
+# Choice
+
+Withdraw from account A, when no funds try account B.
 
 ~~~~ {.haskell}
 limitedWithdraw2 :: Account -> Account -> Int -> STM ()
@@ -452,9 +489,9 @@ limitedWithdraw2 acc1 acc2 amt =
 
 `orElse a1 a2`
 
-* wykonaj `a1`
-* gdy `a1` blokuje (`retry`), próbuje `a2`,
-* gdy i to blokuje, cała transakcja blokuje.
+* execute `a1`
+* if `a1` blocks (`retry`), try `a2`,
+* if it also blocks, the whole transaction blocks
 
 # Równoległość przepływu danych: monada Par
 

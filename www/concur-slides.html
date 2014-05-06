@@ -249,15 +249,15 @@ from.unlock(); to.unlock(); }</code></pre>
 then { from.lock(); to.lock(); }
 else { to.lock(); from.lock(); }</code></pre>
 </div>
-<div id="kłopoty-z-semaforami" class="slide section level1">
-<h1>Kłopoty z semaforami</h1>
+<div id="problems-with-locking" class="slide section level1">
+<h1>Problems with locking</h1>
 <ul>
-<li><p>za mało semaforów</p></li>
-<li><p>nie te semafory - połaczenie między semaforem, a danymi, które chroni nie zawsze jest jasne</p></li>
-<li><p>za duzo semaforów - zakleszczenie, zagłodzenie,...</p></li>
-<li><p>semafory w złej kolejności</p></li>
+<li><p>not enough locks</p></li>
+<li><p>wrong locks - the connection between a lock and data it protects is not always clear które chroni nie zawsze jest jasne</p></li>
+<li><p>too many locks - deadlock, starvation</p></li>
+<li><p>taking locks in a wrong order</p></li>
 </ul>
-<p>Potrzebne lepsze rozwiązanie</p>
+<p>Better solutions?</p>
 </div>
 <div id="software-transactional-memory" class="slide section level1">
 <h1>Software Transactional Memory</h1>
@@ -267,50 +267,50 @@ transfer from to amount = atomically $ do
      deposit to amount
      withdraw from amount </code></pre>
 <ul>
-<li><p>Atomicity: wyniki <code>atomically</code> są widoczne dla innych wątków jako całość</p></li>
-<li><p>Isolation: w trakcie <code>atomically act</code>, na działanie <code>act</code> nie mają wpływu inne wątki</p></li>
+<li><p>Atomicity: results of <code>atomically</code> are visible to other threads as a whole</p></li>
+<li><p>Isolation: during <code>atomically act</code>, no interferencs from other threads</p></li>
 </ul>
 </div>
 <div id="gil" class="slide section level1">
 <h1>GIL?</h1>
-<p>Dwa problemy:</p>
+<p>Two problems</p>
 <ul>
-<li><p>jeden już widzieliśmy: nie ma gwarancji izolacji</p></li>
-<li><p>zabijamy współbieżność (nie bez powodu nazwałem globalny semafor <code>gil</code>)</p></li>
+<li><p>one we have seen alreadt: no isolation guarantee</p></li>
+<li><p>killing concurrency (I called the global lock <code>gil</code> on purpose)</p></li>
 </ul>
-<p>Pierwszy możemy rozwiązać przy pomocy systemu typów</p>
+<p>The first problem can be solved using types:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">atomically ::</span> <span class="dt">STM</span> a <span class="ot">-&gt;</span> <span class="dt">IO</span> a</code></pre>
-<p>przy czym w <code>STM</code> nie ma dostepu do bezpośrednio do <code>IORef</code> a tylko do zmiennych transakcyjnych:</p>
+<p>where <code>STM</code> has no direct access to <code>IORef</code>, only to transaction variables:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">TVar</span>
 <span class="ot">newTVar ::</span> a <span class="ot">-&gt;</span> <span class="dt">STM</span> (<span class="dt">TVar</span> a)
 <span class="ot">readTVar ::</span> <span class="dt">TVar</span> a <span class="ot">-&gt;</span> <span class="dt">STM</span> a
 <span class="ot">writeTVar ::</span> <span class="dt">TVar</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">STM</span> ()</code></pre>
-<p><strong>Ćwiczenie:</strong> rozwiń ten pomysł; wypróbuj jego przepustowość</p>
+<p><strong>Exercise:</strong> develop this idea; check its throughput</p>
 </div>
-<div id="optymistyczna-współbieżność" class="slide section level1">
-<h1>Optymistyczna współbieżność</h1>
+<div id="optimistic-concurrency" class="slide section level1">
+<h1>Optimistic concurrency</h1>
 <ul>
-<li>Pomysł z baz danych: <code>atomically</code> tworzy lokalny log,</li>
-<li><code>writeTVar</code> pisze do logu, nie pisząc do wspólnej pamięci</li>
-<li><code>readTVar</code> sprawdza najpierw log, potem ew. czyta z pamięci, zapisując odczytaną wartość w logu.</li>
-<li>na końcu próbujemy zatwierdzić transakcję:
+<li>An idea from databases: <code>atomically</code> writes a local log</li>
+<li><code>writeTVar</code> writes only to the log, not to shared memory.</li>
+<li><code>readTVar</code> checks the log first, if not found reads the memory, writing to the log.</li>
+<li>eventually we attempt to commit the transaction:
 <ul>
-<li>czytamy wszystkie zmienne przez nią czytane i porównujemy z logiem</li>
-<li>jeśli sie zgadza, zatwierdzamy: zapisujemy to co w logu</li>
-<li>wpp wycofujemy transakcję i próbujemy ją wykonac jeszcze raz (później)</li>
+<li>read all vars it reads, compare with the log</li>
+<li>if no discrepancies, commit - write from log to memory</li>
+<li>otherwise rollback and redo later</li>
 </ul></li>
 </ul>
-<p>Uwaga: system musi zapewnić atomowość zatwierdzania transakcji.</p>
+<p>Note: the RTS must ensure atomicity of commits</p>
 </div>
 <div id="launchmissiles" class="slide section level1">
 <h1>launchMissiles?</h1>
-<p>Transakcja nie może miec innych efektów ubocznych niż STM</p>
+<p>Transactions can have no side effects other than STM</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">atomically <span class="fu">$</span> <span class="kw">do</span> 
     x <span class="ot">&lt;-</span> readTVar xv
     y <span class="ot">&lt;-</span> readTVar yv
-    <span class="kw">if</span> x<span class="fu">&gt;</span>y <span class="kw">then</span> launchMissiles
-           <span class="kw">else</span> return ()</code></pre>
-<p>''Optymistycznie'' przeczytane wartości x,y moga być nieprawdziwe, lepiej nie odpalać rakiet...</p>
+    when (x<span class="fu">&gt;</span>y) launchMissiles</code></pre>
+<p>``optimistically'' read values of x,y need not be true</p>
+<p>better not to launch missiles...</p>
 </div>
 <div id="stm" class="slide section level1">
 <h1>STM</h1>
@@ -335,13 +335,15 @@ baseDelay <span class="fu">=</span> <span class="dv">10</span><span class="fu">^
 <span class="ot">delay ::</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Integer</span>
 delay <span class="dv">0</span> <span class="fu">=</span> <span class="dv">0</span>
 delay n <span class="fu">=</span> delay <span class="fu">$!</span> n<span class="fu">-</span><span class="dv">1</span></code></pre>
+<pre><code>./stm1 +RTS -N2
+20</code></pre>
 </div>
-<div id="ćwiczenie" class="slide section level1">
-<h1>Ćwiczenie</h1>
-<p>Zaimplementuj <code>withdraw</code>, <code>deposit</code> przy pomocy STM.</p>
+<div id="exercise" class="slide section level1">
+<h1>Exercise</h1>
+<p>Implement <code>withdraw</code>, <code>deposit</code> using STM</p>
 </div>
-<div id="blokowanie-retry" class="slide section level1">
-<h1>Blokowanie: <code>retry</code></h1>
+<div id="blocking-retry" class="slide section level1">
+<h1>Blocking: <code>retry</code></h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">retry ::</span> <span class="dt">STM</span> a
 
 <span class="ot">limitedWithdraw ::</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">STM</span> ()
@@ -350,11 +352,11 @@ limitedWithdraw acc amount <span class="fu">=</span> <span class="kw">do</span>
    <span class="kw">if</span> amount <span class="fu">&gt;</span> <span class="dv">0</span> <span class="fu">&amp;&amp;</span> amount <span class="fu">&gt;</span> bal
       <span class="kw">then</span> retry
       <span class="kw">else</span> writeTVar acc (bal <span class="fu">-</span> amount) </code></pre>
-<p>Gdy brak srodków zawieszamy transakcję i próbujemy później</p>
-<p>System wie jakie zmienne transakcja czyta i moze ją wznowic po zapisie do którejś z tych zmiennych (tu: <code>amount</code>)</p>
+<p>When not enough funds, stop the transaction and retry later.</p>
+<p>The system knows which variables are read and can retry when one of them changes (here: <code>amount</code>).</p>
 </div>
-<div id="ładniej-check" class="slide section level1">
-<h1>Ładniej: <code>check</code></h1>
+<div id="better-check" class="slide section level1">
+<h1>Better: <code>check</code></h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">limitedWithdraw ::</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">STM</span> ()
 limitedWithdraw acc amount <span class="fu">=</span> <span class="kw">do</span>
    bal <span class="ot">&lt;-</span> readTVar acc
@@ -369,18 +371,39 @@ check <span class="dt">False</span> <span class="fu">=</span> retry</code></pre>
 guard <span class="dt">True</span>      <span class="fu">=</span>  return ()
 guard <span class="dt">False</span>     <span class="fu">=</span>  mzero</code></pre>
 </div>
-<div id="wybór" class="slide section level1">
-<h1>Wybór</h1>
-<p>Pobierz z konta A, gdy brak środków, spróbuj konta B</p>
+<div id="other-uses-of-retry---window-manager" class="slide section level1">
+<h1>Other uses of retry - window manager</h1>
+<p>Marlow, p 181</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">renderThread ::</span> <span class="dt">Display</span> <span class="ot">-&gt;</span> <span class="dt">UserFocus</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+renderThread disp focus <span class="fu">=</span> <span class="kw">do</span>
+  wins <span class="ot">&lt;-</span> atomically <span class="fu">$</span> getWindows disp focus    <span class="co">-- &lt;1&gt;</span>
+  loop wins                                     <span class="co">-- &lt;2&gt;</span>
+ <span class="kw">where</span>
+  loop wins <span class="fu">=</span> <span class="kw">do</span>                                <span class="co">-- &lt;3&gt;</span>
+    render wins                                 <span class="co">-- &lt;4&gt;</span>
+    next <span class="ot">&lt;-</span> atomically <span class="fu">$</span> <span class="kw">do</span>
+               wins&#39; <span class="ot">&lt;-</span> getWindows disp focus   <span class="co">-- &lt;5&gt;</span>
+               <span class="kw">if</span> (wins <span class="fu">==</span> wins&#39;)               <span class="co">-- &lt;6&gt;</span>
+                   <span class="kw">then</span> retry                   <span class="co">-- &lt;7&gt;</span>
+                   <span class="kw">else</span> return wins&#39;            <span class="co">-- &lt;8&gt;</span>
+    loop next</code></pre>
+<p>1: read the current set of windows to display</p>
+<p>4: call render to display the current state and then enter a transaction to read the next state.</p>
+<p>7: If the states are the same, then there is no need to do anything, so we call <code>retry</code></p>
+<p>8: If the states are different, then we return the new state, and the loop iterates with the new state</p>
+</div>
+<div id="choice" class="slide section level1">
+<h1>Choice</h1>
+<p>Withdraw from account A, when no funds try account B.</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">limitedWithdraw2 ::</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Account</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">STM</span> ()
 limitedWithdraw2 acc1 acc2 amt <span class="fu">=</span>
    limitedWithdraw acc1 amt <span class="ot">`orElse`</span> 
    limitedWithdraw acc2 amt</code></pre>
 <p><code>orElse a1 a2</code></p>
 <ul>
-<li>wykonaj <code>a1</code></li>
-<li>gdy <code>a1</code> blokuje (<code>retry</code>), próbuje <code>a2</code>,</li>
-<li>gdy i to blokuje, cała transakcja blokuje.</li>
+<li>execute <code>a1</code></li>
+<li>if <code>a1</code> blocks (<code>retry</code>), try <code>a2</code>,</li>
+<li>if it also blocks, the whole transaction blocks</li>
 </ul>
 </div>
 <div id="równoległość-przepływu-danych-monada-par" class="slide section level1">
