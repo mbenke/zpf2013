@@ -259,6 +259,25 @@ main2 atomically = do
 
 ```
 
+# Exercise: unbounded channels
+
+`MVar` represent a one-element channel. Use them to implement unbounded channels:
+
+~~~
+type Stream a = MVar (Item a)
+data Item a   = Item a (Stream a)
+
+newChan :: IO (Chan a)
+-- |Build and return a new instance of Chan.
+
+writeChan :: Chan a -> a -> IO ()
+-- |Write a value to a Chan.
+
+readChan :: Chan a -> IO a
+-- |Read the next value from the Chan.
+~~~
+
+NB this is available as `Control.Concurrent.Chan` but try to avoid cheating
 
 # Bank accounts
 
@@ -492,6 +511,24 @@ limitedWithdraw2 acc1 acc2 amt =
 * execute `a1`
 * if `a1` blocks (`retry`), try `a2`,
 * if it also blocks, the whole transaction blocks
+
+# Exercise: TChan
+
+Reimplement unbounded channels you implemented before using STM:
+
+
+~~~~ {.haskell}
+data TChan a = TChan (TVar (TVarList a))
+                     (TVar (TVarList a))
+
+type TVarList a = TVar (TList a)
+data TList a = TNil | TCons a (TVarList a)
+
+newTChan :: STM (TChan a)
+readTChan :: TChan a -> STM a
+writeTChan :: TChan a -> a -> STM ()
+~~~~
+
 
 # Równoległość przepływu danych: monada Par
 
