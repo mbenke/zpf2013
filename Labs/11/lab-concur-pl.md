@@ -1,3 +1,6 @@
+
+UWAGA: to jest stara wersja, aktualna wersja zadań w lab-concur-en.md
+
 # GIL?
 
 Dwa problemy:
