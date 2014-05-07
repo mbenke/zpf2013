@@ -3,6 +3,10 @@
 `MVar` represent a one-element channel. Use them to implement unbounded channels:
 
 ~~~
+data Chan a
+ = Chan (MVar (Stream a))
+        (MVar (Stream a))
+        
 type Stream a = MVar (Item a)
 data Item a   = Item a (Stream a)
 
