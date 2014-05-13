@@ -349,6 +349,8 @@ etc.)
 
 # Databases
 
+Opaleye - Tom Ellis,
+ [http://staff.science.uva.nl/~grelck/nl-fp-talks/ellis.pdf](http://staff.science.uva.nl/~grelck/nl-fp-talks/ellis.pdf)
 
 ~~~~ {.haskell}
 > people :: Table(PersonId, Name)
@@ -377,7 +379,7 @@ Duncan's favourite feature is cabal
 Simon's favourite feature is purity
 ~~~
 
-#  Behind the scenes
+#  Under thre hood
 
 ~~~~ {.haskell}
 > type QueryArr = Kleisli [] -- fake DB with lists
@@ -386,9 +388,18 @@ Simon's favourite feature is purity
 > type Table = Query
 
 > display :: Query String -> IO ()
+
+> eq :: Eq a => QueryArr (a,a) Bool
+> eq =  eq = arr $ uncurry (==)
+
+> restrict :: QueryArr Bool ()
+> restrict = Kleisli guard
+>   where guard = \cond -> if cond then [()] else []
 ~~~~
 
 Not many details, Opaleye is not open source :(
+
+[http://www.haskell.org/pipermail/haskell-cafe/2014-March/113253.html](http://www.haskell.org/pipermail/haskell-cafe/2014-March/113253.html)
 
 # Koniec
 

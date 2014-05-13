@@ -289,6 +289,7 @@ returnA <span class="fu">=</span> arr id</code></pre>
 </div>
 <div id="databases" class="slide section level1">
 <h1>Databases</h1>
+<p>Opaleye - Tom Ellis, <a href="http://staff.science.uva.nl/~grelck/nl-fp-talks/ellis.pdf">http://staff.science.uva.nl/~grelck/nl-fp-talks/ellis.pdf</a></p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&gt;</span><span class="ot"> people ::</span> <span class="dt">Table</span>(<span class="dt">PersonId</span>, <span class="dt">Name</span>)
 <span class="fu">&gt;</span><span class="ot"> favoriteFeature ::</span> <span class="dt">Table</span>(<span class="dt">PersonId</span>, <span class="dt">String</span>)
 
@@ -311,15 +312,23 @@ Tom&#39;s favourite feature is arrows
 Duncan&#39;s favourite feature is cabal
 Simon&#39;s favourite feature is purity</code></pre>
 </div>
-<div id="behind-the-scenes" class="slide section level1">
-<h1>Behind the scenes</h1>
+<div id="under-thre-hood" class="slide section level1">
+<h1>Under thre hood</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&gt;</span> <span class="kw">type</span> <span class="dt">QueryArr</span> <span class="fu">=</span> <span class="dt">Kleisli</span> [] <span class="co">-- fake DB with lists</span>
 <span class="fu">&gt;</span> <span class="kw">instance</span> <span class="dt">Arrow</span> <span class="dt">QueryArr</span> <span class="kw">where</span>
 <span class="fu">&gt;</span> <span class="kw">type</span> <span class="dt">Query</span> <span class="fu">=</span> <span class="dt">QueryArr</span> ()
 <span class="fu">&gt;</span> <span class="kw">type</span> <span class="dt">Table</span> <span class="fu">=</span> <span class="dt">Query</span>
 
-<span class="fu">&gt;</span><span class="ot"> display ::</span> <span class="dt">Query</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
+<span class="fu">&gt;</span><span class="ot"> display ::</span> <span class="dt">Query</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
+
+<span class="fu">&gt;</span><span class="ot"> eq ::</span> <span class="dt">Eq</span> a <span class="ot">=&gt;</span> <span class="dt">QueryArr</span> (a,a) <span class="dt">Bool</span>
+<span class="fu">&gt;</span> eq <span class="fu">=</span>  eq <span class="fu">=</span> arr <span class="fu">$</span> uncurry (<span class="fu">==</span>)
+
+<span class="fu">&gt;</span><span class="ot"> restrict ::</span> <span class="dt">QueryArr</span> <span class="dt">Bool</span> ()
+<span class="fu">&gt;</span> restrict <span class="fu">=</span> <span class="dt">Kleisli</span> guard
+<span class="fu">&gt;</span>   <span class="kw">where</span> guard <span class="fu">=</span> \cond <span class="ot">-&gt;</span> <span class="kw">if</span> cond <span class="kw">then</span> [()] <span class="kw">else</span> []</code></pre>
 <p>Not many details, Opaleye is not open source :(</p>
+<p><a href="http://www.haskell.org/pipermail/haskell-cafe/2014-March/113253.html">http://www.haskell.org/pipermail/haskell-cafe/2014-March/113253.html</a></p>
 </div>
 <div id="koniec" class="slide section level1">
 <h1>Koniec</h1>
