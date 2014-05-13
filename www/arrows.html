@@ -27,44 +27,54 @@ code > span.er { color: #ff0000; font-weight: bold; }
   </style>
 </head>
 <body>
-<h1 id="sygnały-i-programowanie-reaktywne">Sygnały i programowanie reaktywne</h1>
+<h1 id="signals-and-reactive-programming">Signals and reactive programming</h1>
 <ul>
-<li><p>Systemy hybrydowe: elementy analogowe (ciągłe) i cyfrowe (dyskretne)</p></li>
-<li><p>Sygnały: wartości zmienne w czasie</p></li>
-<li><p>Przetworniki sygnałów (SF)</p></li>
+<li><p>Hybrid systems: analog (continous) and digital (discrete) elements</p></li>
+<li><p>Signals: values varying with time</p></li>
+<li><p>Signal functions (SF)</p></li>
 </ul>
 <pre><code>Signal a ~ Time -&gt; a
 SF a b   ~ Signal a -&gt; Signal b</code></pre>
-<p>(historycznie: Hallgren, Carlsson 1995: użycie procesorów strumieni do programowania GUI w Haskellu)</p>
+<p>(historically: Hallgren, Carlsson 1995: Fudgets - using stream processors for Haskell GUI programming)</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">SP</span> a b <span class="fu">=</span> <span class="dt">Put</span> b (<span class="dt">SP</span> a b) <span class="fu">|</span> <span class="dt">Get</span> (a <span class="ot">-&gt;</span> <span class="dt">SP</span> a b)</code></pre>
-<h1 id="przetworniki">Przetworniki</h1>
+<h1 id="signal-processors">Signal processors</h1>
 <div class="figure">
-<img src="YampaArrows.png" title="Przetworniki" />
+<img src="YampaArrows.png" title="Processsors" />
 </div>
-<h1 id="strzałki">Strzałki</h1>
+<h1 id="arrows">Arrows</h1>
 <ul>
-<li><p><code>instance Monad m c</code>: obliczenie o wyniku typu <code>c</code></p></li>
-<li><p><code>instance Arrow a b c</code>: obliczenie przetwarzające <code>a</code> na <code>b</code></p></li>
+<li><p><code>instance Monad m c</code>: a computation with result type <code>c</code></p></li>
+<li><p><code>instance Arrow a b c</code>: a computation transforming <code>a</code> to <code>b</code></p></li>
 </ul>
-<p>Pierwsze przybliżenie (Hughes 2000 ``Generalising monads to arrows'')</p>
+<p>First approximation (Hughes 2000 ``Generalising monads to arrows'')</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
 <span class="ot">    arr   ::</span> (b<span class="ot">-&gt;</span>c) <span class="ot">-&gt;</span>  a b c
 <span class="ot">    (&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d</code></pre>
-<p>Dla dowolnej monady <code>m</code>, funkcje <code>a -&gt; m b</code> są dobrymi kandydatami:</p>
+<h1 id="categories">Categories</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span>
+<span class="ot">    arr   ::</span> (b<span class="ot">-&gt;</span>c) <span class="ot">-&gt;</span>  a b c
+<span class="ot">    (&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d</code></pre>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import qualified</span> <span class="dt">Prelude</span>
+<span class="kw">class</span> <span class="dt">Category</span> cat <span class="kw">where</span>
+<span class="ot">    id ::</span> cat a a
+<span class="ot">    (.) ::</span> cat b c <span class="ot">-&gt;</span> cat a b <span class="ot">-&gt;</span> cat a c</code></pre>
+<p>For any monad <code>m</code>, functions <code>a -&gt; m b</code> are Kleisli arrows:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Kleisli</span> m a b <span class="fu">=</span> <span class="dt">K</span>(a <span class="ot">-&gt;</span> m b)
 
-<span class="kw">instance</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Arrow</span> (<span class="dt">Kleisli</span> m) <span class="kw">where</span>
-  arr f       <span class="fu">=</span> <span class="dt">K</span> <span class="fu">$</span> <span class="fu">return</span> <span class="fu">.</span> f
+<span class="kw">instance</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Arrow</span> (<span class="dt">Kleisli</span> m) <span class="kw">where</span>
+  arr f       <span class="fu">=</span> <span class="dt">K</span> <span class="fu">$</span> return <span class="fu">.</span> f
   <span class="dt">K</span> f <span class="fu">&gt;&gt;&gt;</span> <span class="dt">K</span> g <span class="fu">=</span> <span class="dt">K</span> <span class="fu">$</span> f <span class="fu">&gt;=&gt;</span> g
 
-<span class="ot">(&gt;=&gt;)       ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> m c) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m c)
+<span class="ot">(&gt;=&gt;)       ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> m c) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m c)
 f <span class="fu">&gt;=&gt;</span> g     <span class="fu">=</span> \x <span class="ot">-&gt;</span> (f x <span class="fu">&gt;&gt;=</span> g)</code></pre>
+<p>Exercise:</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> <span class="dt">Category</span> (<span class="dt">Kleisli</span> m)</code></pre>
 <h1 id="problem">Problem</h1>
-<p>Obliczenie sumujące wyniki dwóch obliczeń</p>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add1 ::</span> <span class="kw">Monad</span> m <span class="ot">=&gt;</span> m <span class="dt">Int</span> <span class="ot">-&gt;</span> m <span class="dt">Int</span> <span class="ot">-&gt;</span> m <span class="dt">Int</span> 
-add1 mx my <span class="fu">=</span> mx <span class="fu">&gt;&gt;=</span> \x<span class="ot">-&gt;</span> my <span class="fu">&gt;&gt;=</span> \y <span class="ot">-&gt;</span> <span class="fu">return</span> <span class="fu">$</span> x<span class="fu">+</span>y
+<p>A computation summing up results of other computationas</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add1 ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> m <span class="dt">Int</span> <span class="ot">-&gt;</span> m <span class="dt">Int</span> <span class="ot">-&gt;</span> m <span class="dt">Int</span> 
+add1 mx my <span class="fu">=</span> mx <span class="fu">&gt;&gt;=</span> \x<span class="ot">-&gt;</span> my <span class="fu">&gt;&gt;=</span> \y <span class="ot">-&gt;</span> return <span class="fu">$</span> x<span class="fu">+</span>y
 <span class="co">-- liftM2 (+)</span></code></pre>
-<p>Jak to wyrazić przy pomocy strzałek?</p>
+<p>How to express this with arrows</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add2 ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span></code></pre>
 <p><code>arr (+)</code> ?</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">addInt ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>
@@ -72,38 +82,53 @@ addInt <span class="fu">=</span> (<span class="fu">+</span>)
 
 <span class="fu">&gt;</span> <span class="fu">:</span>t arr addInt
 arr<span class="ot"> addInt ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a <span class="dt">Int</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>)</code></pre>
-<p>Bramki z jednym wejściem są za słabe...</p>
-<h1 id="pomysł">Pomysł</h1>
+<p>Gates with one input seem to weak...</p>
+<h1 id="an-idea">An Idea</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">add2 ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span>
 add2 f g <span class="fu">=</span> (<span class="fu">?</span>)</code></pre>
 <div class="figure">
 <img src="arrAdd.png" title="arrow add" />
 </div>
-<p>Tak <code>f</code> jak i <code>g</code> potrzebują wejścia typu <code>b</code>.</p>
+<p>Both <code>f</code> and <code>g</code> need input of type <code>b</code>.</p>
 <ul>
-<li><p>Rozdzielmy wejście na dwie kopie</p></li>
-<li><p>jedną podajmy do <code>f</code>, drugą zachowajmy</p></li>
-<li><p>zachowajmy wynik <code>f</code>, podając drugą kopię do <code>g</code></p></li>
-<li><p>zsumujmy wyniki</p></li>
+<li><p>Make two copies of the input</p></li>
+<li><p>one goes to <code>f</code>, other kept for now</p></li>
+<li><p>keep the result of <code>f</code>, passing the second input copy to <code>g</code></p></li>
+<li><p>sum up the results</p></li>
 </ul>
-<h1 id="demultiplekser">Demultiplekser</h1>
-<p>Zamiast dwóch wejść, możemy uzyc jednego, które jest parą...</p>
-<p>...pod warunkiem, że potrafimy operować na składnikach niezależnie</p>
+<h1 id="demultiplexer">Demultiplexer</h1>
+<p>Instead of two inputs, we might use one input being a pair...</p>
+<p>...as long as we can operate on its components independently</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="kw">where</span> <span class="co">{- ... -}</span>
 <span class="ot">    first ::</span> a b c <span class="ot">-&gt;</span> a (b,d) (c,d)</code></pre>
 <div class="figure">
 <img src="first.png" title="first" />
 </div>
-<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">    arr ::</span> (b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> a b c</code></pre>
-<div class="figure">
-<img src="arr.png" title="arr" />
-</div>
+<p>NB, this function is tremendously useful even without full arrows, used at the type</p>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">    first ::</span>  b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> (b,d) <span class="ot">-&gt;</span> (c,d)</code></pre>
+<p>Exercise: implement first for Kleisli arrows</p>
+<h1 id="almost-there">Almost there</h1>
+<!--
+
+~~~~ {.haskell}
+    arr :: (b -> c) -> a b c
+~~~~
+
+![](arr.png "arr")
+
+-->
+
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d</code></pre>
 <div class="figure">
 <img src="compose.png" title="compose" />
 </div>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">almostAdd ::</span> (b,b) <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span>
+almostAdd <span class="fu">=</span> first f <span class="fu">&gt;&gt;&gt;</span> second g <span class="fu">&gt;&gt;&gt;</span> arr (uncurry <span class="fu">+</span>)</code></pre>
+<div class="figure">
+<img src="arrAdd.png" title="arrow add" />
+</div>
 <h1 id="second">second?</h1>
-<p>Mamy <code>first</code> a gdzie jest second?</p>
+<p>We saw <code>first</code> but where is <code>second</code>?</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">second ::</span> a b c <span class="ot">-&gt;</span> a (d, b) (d, c)
 second f <span class="fu">=</span> arr swap <span class="fu">&gt;&gt;&gt;</span> first f <span class="fu">&gt;&gt;&gt;</span> arr swap 
   <span class="kw">where</span> swap (x,y) <span class="fu">=</span> (y,x)</code></pre>
@@ -111,7 +136,7 @@ second f <span class="fu">=</span> arr swap <span class="fu">&gt;&gt;&gt;</span>
 <img src="secondImp.png" title="second" />
 </div>
 <h1 id="first-f-second-g"><code>first f &gt;&gt;&gt; second g</code></h1>
-<p>Teraz możemy przetwarzać obie składowe:</p>
+<p>Now we can process both components:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(***)   ::</span> a b c <span class="ot">-&gt;</span> a b&#39; c&#39; <span class="ot">-&gt;</span> a (b, b&#39;) (c, c&#39;)
 f <span class="fu">***</span> g <span class="fu">=</span> first f <span class="fu">&gt;&gt;&gt;</span> second g
 
@@ -125,7 +150,7 @@ add2 f g <span class="fu">=</span> (f <span class="fu">&amp;&amp;&amp;</span> g)
 <div class="figure">
 <img src="arrAdd.png" title="arrow add" />
 </div>
-<h1 id="kombinatory-parsujące">Kombinatory parsujące</h1>
+<h1 id="parsing-combinators">Parsing combinators</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Swierstra &amp; Duponcheel LL(1) parsers</span>
 
 <span class="co">-- static info: nullable, First</span>
@@ -135,10 +160,10 @@ add2 f g <span class="fu">=</span> (f <span class="fu">&amp;&amp;&amp;</span> g)
 <span class="kw">data</span> <span class="dt">Parser</span> s a <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">StaticParser</span> s)(<span class="dt">DynamicParser</span> s a)
 
 <span class="ot">symbol ::</span> s <span class="ot">-&gt;</span> <span class="dt">Parser</span> s s
-symbol s <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="kw">False</span> [s]) (<span class="dt">DP</span> (\(x<span class="fu">:</span>xs) <span class="ot">-&gt;</span> (s,xs)))
-<span class="co">-- Wywołane tylko gdy pierwszym symbolem jest s</span>
+symbol s <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="dt">False</span> [s]) (<span class="dt">DP</span> (\(x<span class="fu">:</span>xs) <span class="ot">-&gt;</span> (s,xs)))
+<span class="co">-- Called only when the first symbol is s</span>
 
-<span class="ot">(&lt;|&gt;) ::</span> <span class="kw">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a
+<span class="ot">(&lt;|&gt;) ::</span> <span class="dt">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a
 (<span class="dt">P</span> (<span class="dt">SP</span> nul1 first1) (<span class="dt">DP</span> p1)) <span class="fu">&lt;|&gt;</span> (<span class="dt">P</span> (<span class="dt">SP</span> nul2 first2) (<span class="dt">DP</span> p2)) <span class="fu">=</span>
   <span class="dt">P</span> (<span class="dt">SP</span> (nul1 <span class="fu">||</span> nul2) (first1<span class="fu">++</span>first2)) (<span class="dt">DP</span> p) <span class="kw">where</span>
     p xs <span class="fu">=</span> <span class="kw">case</span> xs <span class="kw">of</span>
@@ -147,14 +172,14 @@ symbol s <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">S
                 <span class="kw">if</span> y <span class="ot">`elem`</span> first2 <span class="kw">then</span> p2 xs <span class="kw">else</span>
                 <span class="kw">if</span> nul1 <span class="kw">then</span> p1 xs <span class="kw">else</span> p2 xs</code></pre>
 <h1 id="problem-1">Problem: &gt;&gt;= ?</h1>
-<p>Jak zdefiniować</p>
+<p>How to define</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">(&gt;&gt;=) ::</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s b) <span class="ot">-&gt;</span> <span class="dt">Parser</span> s b </code></pre>
-<p>Problem: ''statyczna'' informacja o parserze wynikowym nie jest statyczna, gdyż zalezy od pierwszego parsera.</p>
-<p>Przypomnijmy, podobny problem był z</p>
+<p>Problem: ''static'' info about the result parser is not static, since it depends on the result of the first parser</p>
+<p>Recall that we had a similar problem with</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Accy</span> o a <span class="fu">=</span> <span class="dt">Acc</span>{<span class="ot">acc::</span>o}
 <span class="ot">(&gt;&gt;=) ::</span> <span class="dt">Accy</span> o a <span class="ot">-&gt;</span> (a<span class="ot">-&gt;</span><span class="dt">Accy</span> o b) <span class="ot">-&gt;</span> <span class="dt">Accy</span> o b</code></pre>
-<h1 id="rozwiązanie-1-applicative">Rozwiązanie 1: Applicative</h1>
-<p>Zamiast <code>Monad</code> można uzyć <code>Applicative</code>:</p>
+<h1 id="solution-1-applicative">Solution 1: Applicative</h1>
+<p>Use <code>Applicative</code> instead of <code>Monad</code></p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&lt;*&gt;</span><span class="ot"> ::</span> (<span class="dt">Parser</span> s (a<span class="ot">-&gt;</span>b)) <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s b
 (<span class="dt">P</span> (<span class="dt">SP</span> nul1 first1) (<span class="dt">DP</span> pf)) <span class="fu">&lt;|&gt;</span> (<span class="dt">P</span> (<span class="dt">SP</span> nul2 first2) (<span class="dt">DP</span> pa)) <span class="fu">=</span> 
   <span class="dt">P</span> (<span class="dt">SP</span> (nul1<span class="fu">&amp;&amp;</span>nul2) first) (<span class="dt">DP</span> p) <span class="kw">where</span> 
@@ -163,9 +188,9 @@ symbol s <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">S
 
 <span class="ot">pure ::</span> a <span class="ot">-&gt;</span> <span class="dt">Parser</span> s a
 pure <span class="fu">=</span> <span class="fu">...</span></code></pre>
-<p><strong>Ćwiczenie:</strong> uzupełnij powyższą definicję</p>
-<p><strong>Bonus:</strong> wykorzystaj <code>first</code> oraz <code>(&amp;&amp;&amp;)</code></p>
-<h1 id="rozwiązanie-2-arrow">Rozwiązanie 2: Arrow</h1>
+<p><strong>Exercise:</strong> complete the definition above</p>
+<p><strong>Bonus:</strong> use <code>first</code> and<code>(&amp;&amp;&amp;)</code> where appropriate</p>
+<h1 id="solution-2-arrow">Solution 2: Arrow</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">StaticParser</span> s <span class="fu">=</span> <span class="dt">SP</span> {<span class="ot"> spNullable ::</span> <span class="dt">Bool</span>,<span class="ot"> spFirst ::</span> [s] } 
 <span class="kw">newtype</span> <span class="dt">DynamicParser</span> s a b <span class="fu">=</span> <span class="dt">DP</span>( (a,[s]) <span class="ot">-&gt;</span> (b,[s]) )
 <span class="kw">data</span> <span class="dt">Parser</span> s a b <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">StaticParser</span> s)(<span class="dt">DynamicParser</span> s a b)
@@ -175,8 +200,8 @@ pure <span class="fu">=</span> <span class="fu">...</span></code></pre>
 <span class="ot">    (&gt;&gt;&gt;) ::</span> a b c <span class="ot">-&gt;</span> a c d <span class="ot">-&gt;</span> a b d
 <span class="ot">    first ::</span> a b c <span class="ot">-&gt;</span> a (b,d) (c,d)
 
-<span class="kw">instance</span> <span class="kw">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">Arrow</span> (<span class="dt">Parser</span> s) <span class="kw">where</span>
-   arr f <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="kw">True</span> []) (arr f)
+<span class="kw">instance</span> <span class="dt">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">Arrow</span> (<span class="dt">Parser</span> s) <span class="kw">where</span>
+   arr f <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="dt">True</span> []) (arr f)
    
    (<span class="dt">P</span> (<span class="dt">SP</span> nul1 first1) dp1) <span class="fu">&gt;&gt;&gt;</span> (<span class="dt">P</span> (<span class="dt">SP</span> nul2 first2) dp2) <span class="fu">=</span>
      <span class="dt">P</span> (<span class="dt">SP</span> (nul1 <span class="fu">&amp;&amp;</span> nul2) (union first1 first2)) (dp1 <span class="fu">&gt;&gt;&gt;</span> dp2) 
@@ -184,43 +209,74 @@ pure <span class="fu">=</span> <span class="fu">...</span></code></pre>
    first (<span class="dt">P</span> sp dp) <span class="fu">=</span> <span class="dt">P</span> sp (first dp)
 
 <span class="kw">instance</span> <span class="dt">Arrow</span> (<span class="dt">DynamicParser</span> s) <span class="kw">where</span> <span class="fu">...</span></code></pre>
-<p><strong>Ćwiczenie:</strong> uzupełnij instancję dla <code>DynamicParser</code></p>
+<p><strong>Exercise:</strong> write an <code>Arrow</code> instance for <code>DynamicParser</code></p>
 <h1 id="arrowzero-arrowplus">ArrowZero, ArrowPlus</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> <span class="dt">ArrowZero</span> a <span class="kw">where</span>
 <span class="ot">    zeroArrow ::</span> a b c
    
-<span class="kw">instance</span> <span class="kw">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">ArrowZero</span> (<span class="dt">Parser</span> s) <span class="kw">where</span>
-  zeroArrow <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="kw">False</span> []) zeroArrow
+<span class="kw">instance</span> <span class="dt">Eq</span> s <span class="ot">=&gt;</span> <span class="dt">ArrowZero</span> (<span class="dt">Parser</span> s) <span class="kw">where</span>
+  zeroArrow <span class="fu">=</span> <span class="dt">P</span> (<span class="dt">SP</span> <span class="dt">False</span> []) zeroArrow
   
 <span class="kw">instance</span> <span class="dt">ArrowZero</span> (<span class="dt">DynamicParser</span> s) <span class="kw">where</span> <span class="fu">...</span>
 
 <span class="kw">class</span> <span class="dt">ArrowZero</span> a <span class="ot">=&gt;</span> <span class="dt">ArrowPlus</span> a <span class="kw">where</span>
     <span class="co">-- | An associative operation with identity &#39;zeroArrow&#39;.</span>
 <span class="ot">    (&lt;+&gt;) ::</span> a b c <span class="ot">-&gt;</span> a b c <span class="ot">-&gt;</span> a b c  </code></pre>
-<p><strong>Ćwiczenie:</strong> uzupełnij brakujące instancje</p>
-<p><strong>Ćwiczenie:</strong> napisz parser dla ciągów cyfr:</p>
+<p><strong>Exercise:</strong> complete missing instances</p>
+<p><strong>Exercise:</strong> write a parser for digit sequences:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">parseInt ::</span> <span class="dt">Parser</span> <span class="dt">Char</span> a <span class="dt">Int</span>
-parseInt <span class="fu">=</span> arr (<span class="fu">const</span> <span class="dv">0</span>) <span class="fu">&gt;&gt;&gt;</span> parseInt1
+parseInt <span class="fu">=</span> arr (const <span class="dv">0</span>) <span class="fu">&gt;&gt;&gt;</span> parseInt&#39;
 
-<span class="ot">parseInt1 ::</span> <span class="dt">Parser</span> <span class="dt">Char</span> <span class="dt">Int</span> <span class="dt">Int</span>
-parseInt1 <span class="fu">=</span> <span class="fu">undefined</span></code></pre>
-<h1 id="składnia-dla-strzałek">Składnia dla strzałek</h1>
+<span class="ot">parseInt&#39; ::</span> <span class="dt">Parser</span> <span class="dt">Char</span> <span class="dt">Int</span> <span class="dt">Int</span>
+parseInt&#39; <span class="fu">=</span> undefined</code></pre>
+<h1 id="arrow-syntax">Arrow syntax</h1>
 <div class="figure">
 <img src="arrAdd.png" title="arrow add" />
 </div>
-<p>Podobnie jak monady, tak i strzałki mają swoja składnię</p>
+<p>As monads do, also arrows have their own syntax sugar:</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE Arrows #-}</span>
-<span class="kw">import</span> Control.Arrow
+<span class="kw">import </span><span class="dt">Control.Arrow</span>
 <span class="ot">addA ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span> <span class="ot">-&gt;</span> a b <span class="dt">Int</span>
 addA f g <span class="fu">=</span> proc x <span class="ot">-&gt;</span> <span class="kw">do</span>
     y <span class="ot">&lt;-</span> f <span class="fu">-&lt;</span> x
     z <span class="ot">&lt;-</span> g <span class="fu">-&lt;</span> x
     returnA <span class="fu">-&lt;</span> y <span class="fu">+</span> z</code></pre>
-<p>co się tłumaczy do</p>
+<p>translates too</p>
 <pre class="sourceCode haskell"><code class="sourceCode haskell">addA f g <span class="fu">=</span> arr (\ x <span class="ot">-&gt;</span> (x, x)) <span class="fu">&gt;&gt;&gt;</span>
            first f <span class="fu">&gt;&gt;&gt;</span> arr (\ (y, x) <span class="ot">-&gt;</span> (x, y)) <span class="fu">&gt;&gt;&gt;</span>
-           first g <span class="fu">&gt;&gt;&gt;</span> arr (\ (z, y) <span class="ot">-&gt;</span> y <span class="fu">+</span> z)</code></pre>
-<p>wcześniej pisalismy <code>add</code> uzywając <code>(&amp;&amp;&amp;)</code> ale preprocesor nie jest na tyle sprytny (podobnie jak preprocesor dla monad nie uzywa <code>liftM2</code> etc.)</p>
+           first g <span class="fu">&gt;&gt;&gt;</span> arr (\ (z, y) <span class="ot">-&gt;</span> y <span class="fu">+</span> z)
+
+<span class="ot">returnA ::</span> <span class="dt">Arrow</span> a <span class="ot">=&gt;</span> a b b
+returnA <span class="fu">=</span> arr id</code></pre>
+<p>we wrote <code>add</code> using <code>(&amp;&amp;&amp;)</code> but the preprocessor is not smart enough (similarly, preprocessor for monads does not use <code>liftM2</code> etc.)</p>
+<h1 id="databases">Databases</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&gt;</span><span class="ot"> people ::</span> <span class="dt">Table</span>(<span class="dt">PersonId</span>, <span class="dt">Name</span>)
+<span class="fu">&gt;</span><span class="ot"> favoriteFeature ::</span> <span class="dt">Table</span>(<span class="dt">PersonId</span>, <span class="dt">String</span>)
+
+<span class="fu">&gt;</span><span class="ot"> favourites ::</span> <span class="dt">Query</span> <span class="dt">String</span>
+<span class="fu">&gt;</span> favourites <span class="fu">=</span> proc () <span class="ot">-&gt;</span> <span class="kw">do</span>
+<span class="fu">&gt;</span>   <span class="co">-- Corresponding to SQL&#39;s &#39;FROM ...&#39;</span>
+<span class="fu">&gt;</span>   (pid, name) <span class="ot">&lt;-</span> people <span class="fu">-&lt;</span> ()
+<span class="fu">&gt;</span>   (pid&#39;, feature) <span class="ot">&lt;-</span> favouriteFeature <span class="fu">-&lt;</span> ()
+<span class="fu">&gt;</span> 
+<span class="fu">&gt;</span>   <span class="co">-- Corresponding to SQL&#39;s &#39;WHERE ... = ...&#39;</span>
+<span class="fu">&gt;</span>   restrict <span class="fu">&lt;&lt;&lt;</span> eq <span class="fu">-&lt;</span> (pid, pid&#39;)
+<span class="fu">&gt;</span> 
+<span class="fu">&gt;</span>   <span class="co">-- Corresponding to SQL&#39;s &#39;SELECT ...&#39;</span>
+<span class="fu">&gt;</span>   returnA <span class="fu">-&lt;</span> name <span class="fu">++</span> <span class="st">&quot;&#39;s favourite feature is &quot;</span> <span class="fu">++</span> feature</code></pre>
+<h1 id="running-it">Running it</h1>
+<pre><code>*Main Control.Arrow&gt; display favourites
+Tom&#39;s favourite feature is arrows
+Duncan&#39;s favourite feature is cabal
+Simon&#39;s favourite feature is purity</code></pre>
+<h1 id="behind-the-scenes">Behind the scenes</h1>
+<pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">&gt;</span> <span class="kw">type</span> <span class="dt">QueryArr</span> <span class="fu">=</span> <span class="dt">Kleisli</span> [] <span class="co">-- fake DB with lists</span>
+<span class="fu">&gt;</span> <span class="kw">instance</span> <span class="dt">Arrow</span> <span class="dt">QueryArr</span> <span class="kw">where</span>
+<span class="fu">&gt;</span> <span class="kw">type</span> <span class="dt">Query</span> <span class="fu">=</span> <span class="dt">QueryArr</span> ()
+<span class="fu">&gt;</span> <span class="kw">type</span> <span class="dt">Table</span> <span class="fu">=</span> <span class="dt">Query</span>
+
+<span class="fu">&gt;</span><span class="ot"> display ::</span> <span class="dt">Query</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</code></pre>
+<p>Not many details, Opaleye is not open source :(</p>
 <h1 id="koniec">Koniec</h1>
 <pre class="sourceCode haskell"><code class="sourceCode haskell"></code></pre>
 </body>

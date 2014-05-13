@@ -1,42 +1,34 @@
-# Signals and reactive programming
+# Sygnały i programowanie reaktywne
 
-* Hybrid systems: analog (continous) and digital (discrete) elements
+* Systemy hybrydowe: elementy analogowe (ciągłe) i cyfrowe (dyskretne)
 
-* Signals: values varying with time
+* Sygnały: wartości zmienne w czasie
 
-* Signal functions (SF)
+* Przetworniki sygnałów (SF)
 
 ```
 Signal a ~ Time -> a
 SF a b   ~ Signal a -> Signal b
 ```
 
-(historically: Hallgren, Carlsson 1995: Fudgets - using stream processors for Haskell GUI programming)
+(historycznie: Hallgren, Carlsson 1995: użycie procesorów strumieni
+ do programowania GUI w Haskellu)
 
 ~~~~ {.haskell}
 data SP a b = Put b (SP a b) | Get (a -> SP a b)
 ~~~~
 
-# Signal processors
+# Przetworniki
 
-![](YampaArrows.png "Processsors")
+![](YampaArrows.png "Przetworniki")
 
-# Arrows
+# Strzałki
 
-* `instance Monad m c`: a computation with result type `c`
+* `instance Monad m c`: obliczenie o wyniku typu `c`
 
-* `instance Arrow a b c`: a computation transforming `a` to `b`
+* `instance Arrow a b c`: obliczenie przetwarzające `a` na `b`
 
-First approximation (Hughes 2000 ``Generalising monads to arrows'')
-
-~~~~ {.haskell}
-class Arrow a where
-    arr   :: (b->c) ->  a b c
-    (>>>) :: a b c -> a c d -> a b d
-~~~~
-
-
-# Categories
+Pierwsze przybliżenie (Hughes 2000 ``Generalising monads to arrows'')
 
 ~~~~ {.haskell}
 class Arrow a where
@@ -44,15 +36,7 @@ class Arrow a where
     (>>>) :: a b c -> a c d -> a b d
 ~~~~
 
-
-~~~~ {.haskell}
-import qualified Prelude
-class Category cat where
-    id :: cat a a
-    (.) :: cat b c -> cat a b -> cat a c
-~~~~
-
-For any monad  `m`, functions `a -> m b` are Kleisli arrows: 
+Dla dowolnej monady `m`, funkcje `a -> m b` są dobrymi kandydatami:
 
 ~~~~ {.haskell}
 newtype Kleisli m a b = K(a -> m b)
@@ -63,18 +47,12 @@ instance Monad m => Arrow (Kleisli m) where
 
 (>=>)       :: Monad m => (a -> m b) -> (b -> m c) -> (a -> m c)
 f >=> g     = \x -> (f x >>= g)
+
 ~~~~
-
-Exercise: 
-
-~~~~ {.haskell}
-instance Monad m => Category (Kleisli m)
-~~~~
-
 
 # Problem
 
-A computation summing up results of other computationas
+Obliczenie sumujące wyniki dwóch obliczeń
 
 ~~~~ {.haskell}
 add1 :: Monad m => m Int -> m Int -> m Int 
@@ -82,7 +60,7 @@ add1 mx my = mx >>= \x-> my >>= \y -> return $ x+y
 -- liftM2 (+)
 ~~~~
 
-How to express this with arrows
+Jak to wyrazić przy pomocy strzałek?
 
 ~~~~ {.haskell}
 add2 :: Arrow a => a b Int -> a b Int -> a b Int
@@ -98,9 +76,9 @@ addInt = (+)
 arr addInt :: Arrow a => a Int (Int -> Int)
 ~~~~
 
-Gates with one input seem to weak...
+Bramki z jednym wejściem są za słabe...
 
-# An Idea
+# Pomysł
 
 ~~~~ {.haskell}
 add2 :: Arrow a => a b Int -> a b Int -> a b Int
@@ -109,21 +87,21 @@ add2 f g = (?)
 
 ![](arrAdd.png "arrow add")
 
-Both `f` and `g` need input of type `b`.
+Tak `f` jak i `g` potrzebują wejścia typu `b`.
 
-* Make two copies of the input
+* Rozdzielmy wejście na dwie kopie
 
-* one goes to `f`, other kept for now
+* jedną podajmy do `f`, drugą zachowajmy
 
-* keep the result of `f`, passing the second input copy to `g`
+* zachowajmy wynik `f`, podając drugą kopię do `g`
 
-* sum up the results
+* zsumujmy wyniki
 
-# Demultiplexer
+# Demultiplekser
 
-Instead of two inputs, we might use one input being a pair...
+Zamiast dwóch wejść, możemy uzyc jednego, które jest parą...
 
-...as long as we can operate on its components independently
+...pod warunkiem, że potrafimy operować na składnikach niezależnie
 
 ~~~~ {.haskell}
 class Arrow a where {- ... -}
@@ -132,27 +110,11 @@ class Arrow a where {- ... -}
 
 ![](first.png "first")
 
-
-NB, this function is tremendously useful even without full arrows, used at the type
-
-~~~~ {.haskell}
-    first ::  b -> c -> (b,d) -> (c,d)
-~~~~
-
-Exercise: implement first for Kleisli arrows
-
-# Almost there
-
-
-<!--
-
 ~~~~ {.haskell}
     arr :: (b -> c) -> a b c
 ~~~~
 
 ![](arr.png "arr")
-
--->
 
 ~~~~ {.haskell}
 (>>>) :: a b c -> a c d -> a b d
@@ -160,18 +122,9 @@ Exercise: implement first for Kleisli arrows
 
 ![](compose.png "compose")
 
-
-
-~~~~ {.haskell}
-almostAdd :: (b,b) -> a b Int -> a b Int -> a b Int
-almostAdd = first f >>> second g >>> arr (uncurry +)
-~~~~
-
-![](arrAdd.png "arrow add")
-
 # second?
 
-We saw `first` but where is `second`?
+Mamy `first` a gdzie jest second?
 
 ~~~~ {.haskell}
 second :: a b c -> a (d, b) (d, c)
@@ -183,7 +136,7 @@ second f = arr swap >>> first f >>> arr swap
 
 # `first f >>> second g`
 
-Now we can process both components:
+Teraz możemy przetwarzać obie składowe:
 
 ~~~~ {.haskell}
 (***)   :: a b c -> a b' c' -> a (b, b') (c, c')
@@ -200,7 +153,7 @@ add2 f g = (f &&& g) >>> arr (\(u,v) -> u + v)
 
 ![](arrAdd.png "arrow add")
 
-# Parsing combinators
+# Kombinatory parsujące
 
 ~~~~ {.haskell}
 -- Swierstra & Duponcheel LL(1) parsers
@@ -213,7 +166,7 @@ data Parser s a = P (StaticParser s)(DynamicParser s a)
 
 symbol :: s -> Parser s s
 symbol s = P (SP False [s]) (DP (\(x:xs) -> (s,xs)))
--- Called only when the first symbol is s
+-- Wywołane tylko gdy pierwszym symbolem jest s
 
 (<|>) :: Eq s => Parser s a -> Parser s a -> Parser s a
 (P (SP nul1 first1) (DP p1)) <|> (P (SP nul2 first2) (DP p2)) =
@@ -227,16 +180,16 @@ symbol s = P (SP False [s]) (DP (\(x:xs) -> (s,xs)))
 
 # Problem: >>= ?
 
-How to define
+Jak zdefiniować
 
 ~~~~ {.haskell}
 (>>=) :: Parser s a -> (a -> Parser s b) -> Parser s b 
 ~~~~
 
-Problem: ''static'' info about the result parser is not static, since it depends on the result 
-of the first parser
+Problem: ''statyczna'' informacja o parserze wynikowym nie jest statyczna,
+gdyż zalezy od pierwszego parsera.
 
-Recall that we had a similar problem with
+Przypomnijmy, podobny problem był z
 
 
 ~~~~ {.haskell}
@@ -244,9 +197,9 @@ newtype Accy o a = Acc{acc::o}
 (>>=) :: Accy o a -> (a->Accy o b) -> Accy o b
 ~~~~
 
-# Solution 1: Applicative
+# Rozwiązanie 1: Applicative
 
-Use `Applicative` instead of `Monad`  
+Zamiast `Monad` można uzyć `Applicative`:
 
 ~~~~ {.haskell}
 <*> :: (Parser s (a->b)) -> Parser s a -> Parser s b
@@ -259,11 +212,11 @@ pure :: a -> Parser s a
 pure = ...
 ~~~~
 
-**Exercise:** complete the definition above
+**Ćwiczenie:** uzupełnij powyższą definicję
 
-**Bonus:** use `first` and`(&&&)` where appropriate
+**Bonus:** wykorzystaj `first` oraz `(&&&)`
 
-# Solution 2: Arrow
+# Rozwiązanie 2: Arrow
 
 ~~~~ {.haskell}
 data StaticParser s = SP { spNullable :: Bool, spFirst :: [s] } 
@@ -286,7 +239,7 @@ instance Eq s => Arrow (Parser s) where
 instance Arrow (DynamicParser s) where ...
 ~~~~
 
-**Exercise:** write an `Arrow` instance for  `DynamicParser`
+**Ćwiczenie:** uzupełnij instancję dla `DynamicParser`
 
 # ArrowZero, ArrowPlus
 
@@ -304,9 +257,9 @@ class ArrowZero a => ArrowPlus a where
     (<+>) :: a b c -> a b c -> a b c  
 ~~~~
 
-**Exercise:** complete missing instances
+**Ćwiczenie:** uzupełnij brakujące instancje
 
-**Exercise:** write a parser for digit sequences:
+**Ćwiczenie:** napisz parser dla ciągów cyfr:
 
 ~~~~ {.haskell}
 parseInt :: Parser Char a Int
@@ -316,11 +269,11 @@ parseInt' :: Parser Char Int Int
 parseInt' = undefined
 ~~~~
 
-# Arrow syntax
+# Składnia dla strzałek
 
 ![](arrAdd.png "arrow add")
 
-As monads do, also arrows have their own syntax sugar:
+Podobnie jak monady, tak i strzałki mają swoja składnię
 
 ~~~~ {.haskell}
 {-# LANGUAGE Arrows #-}
@@ -332,63 +285,17 @@ addA f g = proc x -> do
     returnA -< y + z
 ~~~~
 
-translates too
+co się tłumaczy do
 
 ~~~~ {.haskell}
 addA f g = arr (\ x -> (x, x)) >>>
            first f >>> arr (\ (y, x) -> (x, y)) >>>
            first g >>> arr (\ (z, y) -> y + z)
-
-returnA :: Arrow a => a b b
-returnA = arr id
 ~~~~
 
-we wrote `add` using `(&&&)` but the preprocessor is not smart enough
-(similarly, preprocessor for monads does not use  `liftM2`
+wcześniej pisalismy `add` uzywając `(&&&)` ale preprocesor nie jest na
+tyle sprytny (podobnie jak preprocesor dla monad nie uzywa `liftM2`
 etc.)
-
-# Databases
-
-
-~~~~ {.haskell}
-> people :: Table(PersonId, Name)
-> favoriteFeature :: Table(PersonId, String)
-
-> favourites :: Query String
-> favourites = proc () -> do
->   -- Corresponding to SQL's 'FROM ...'
->   (pid, name) <- people -< ()
->   (pid', feature) <- favouriteFeature -< ()
-> 
->   -- Corresponding to SQL's 'WHERE ... = ...'
->   restrict <<< eq -< (pid, pid')
-> 
->   -- Corresponding to SQL's 'SELECT ...'
->   returnA -< name ++ "'s favourite feature is " ++ feature
-
-~~~~
-
-# Running it
-
-~~~
-*Main Control.Arrow> display favourites
-Tom's favourite feature is arrows
-Duncan's favourite feature is cabal
-Simon's favourite feature is purity
-~~~
-
-#  Behind the scenes
-
-~~~~ {.haskell}
-> type QueryArr = Kleisli [] -- fake DB with lists
-> instance Arrow QueryArr where
-> type Query = QueryArr ()
-> type Table = Query
-
-> display :: Query String -> IO ()
-~~~~
-
-Not many details, Opaleye is not open source :(
 
 # Koniec
 
